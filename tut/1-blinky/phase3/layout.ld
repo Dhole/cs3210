@@ -1,5 +1,6 @@
 SECTIONS {
-  . = 0x4000000; /* bootloader start; leave ~64MiB free */
+  /* . = 0x4000000; bootloader start; leave ~64MiB free */
+  . = 0x80000; /* Raspbery Pi 3 Aarch64 (kernel8.img) load address */
 
   /* start of the binary */
   __text_beg = .;

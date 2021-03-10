@@ -1,8 +1,8 @@
 #!/bin/bash
 
-set -e
+set -ex
 
-TOP=$(git rev-parse --show-toplevel)
+TOP=/home/user
 BIN=$TOP/bin
 DEP=$TOP/.dep
 VER=nightly-2019-07-01
@@ -22,16 +22,16 @@ QEMU_DEP=(libglib2.0-dev libpixman-1-dev zlib1g-dev)
 if [[ $($BIN/get-dist) == "ubuntu" ]]; then
     echo "[!] Installing packages"
 
-    sudo apt update
-    sudo apt install -y ${PROJ_PKG[*]}
-    sudo apt install -y ${QEMU_DEP[*]}
+    sudo apt-get update
+    sudo apt-get install -y -q ${PROJ_PKG[*]}
+    sudo apt-get install -y -q ${QEMU_DEP[*]}
 fi
 
 # install rustup
 if ! [ -x "$(command -v rustup)" ]; then
     echo "[!] Installing rustup"
 
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
     export PATH=$HOME/.cargo/bin:$PATH
 fi
