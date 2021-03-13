@@ -3,7 +3,6 @@
 #[cfg(test)]
 mod tests;
 
-// use core::ops::{Deref, DerefMut};
 use core::slice;
 
 /// A contiguous array type backed by a slice.
@@ -128,17 +127,6 @@ impl<'a, T: Clone + 'a> StackVec<'a, T> {
         Some(value)
     }
 }
-
-// FIXME: Implement `Deref`, `DerefMut`, and `IntoIterator` for `StackVec`.
-// FIXME: Implement IntoIterator` for `&StackVec`.
-
-// impl<T> Deref for StackVec<T> {
-//     type Target = T;
-//
-//     fn deref(&self) -> &Self::Target {
-//         &self.value
-//     }
-// }
 
 use core::ops::{Index, IndexMut};
 
