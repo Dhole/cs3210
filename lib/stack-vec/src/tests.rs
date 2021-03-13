@@ -179,7 +179,7 @@ fn iterator() {
 
     let mut i = 0;
     for val in stack_vec {
-        assert_eq!(*val, i * i);
+        assert_eq!(val, i * i);
         i += 1;
     }
 }
