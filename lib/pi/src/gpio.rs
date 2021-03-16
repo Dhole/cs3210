@@ -1,8 +1,10 @@
 use core::marker::PhantomData;
 
-use crate::common::{IO_BASE, states};
+use crate::common::{states, IO_BASE};
 use volatile::prelude::*;
-use volatile::{Volatile, WriteVolatile, ReadVolatile, Reserved};
+use volatile::{ReadVolatile, Reserved, Volatile, WriteVolatile};
+
+const FUNCTION_MASK: u32 = 0b111;
 
 /// An alternative GPIO function.
 #[repr(u8)]
@@ -14,7 +16,7 @@ pub enum Function {
     Alt2 = 0b110,
     Alt3 = 0b111,
     Alt4 = 0b011,
-    Alt5 = 0b010
+    Alt5 = 0b010,
 }
 
 #[repr(C)]
@@ -62,7 +64,7 @@ states! {
 pub struct Gpio<State> {
     pin: u8,
     registers: &'static mut Registers,
-    _state: PhantomData<State>
+    _state: PhantomData<State>,
 }
 
 /// The base address of the `GPIO` registers.
@@ -77,7 +79,7 @@ impl<T> Gpio<T> {
         Gpio {
             pin: self.pin,
             registers: self.registers,
-            _state: PhantomData
+            _state: PhantomData,
         }
     }
 }
@@ -96,14 +98,22 @@ impl Gpio<Uninitialized> {
         Gpio {
             registers: unsafe { &mut *(GPIO_BASE as *mut Registers) },
             pin: pin,
-            _state: PhantomData
+            _state: PhantomData,
         }
     }
 
     /// Enables the alternative function `function` for `self`. Consumes self
     /// and returns a `Gpio` structure in the `Alt` state.
     pub fn into_alt(self, function: Function) -> Gpio<Alt> {
-        unimplemented!()
+        let func = function as u32;
+        let (y, x) = (self.pin / 10, self.pin % 10);
+        let fsel_y = &mut self.registers.FSEL[y as usize];
+        fsel_y.write((fsel_y.read() & !(FUNCTION_MASK << (x * 3))) | func << (x * 3));
+        Gpio {
+            registers: self.registers,
+            pin: self.pin,
+            _state: PhantomData,
+        }
     }
 
     /// Sets this pin to be an _output_ pin. Consumes self and returns a `Gpio`
@@ -122,12 +132,16 @@ impl Gpio<Uninitialized> {
 impl Gpio<Output> {
     /// Sets (turns on) the pin.
     pub fn set(&mut self) {
-        unimplemented!()
+        let (y, x) = (self.pin / 32, self.pin % 32);
+        let set_y = &mut self.registers.SET[y as usize];
+        set_y.write(1 << x);
     }
 
     /// Clears (turns off) the pin.
     pub fn clear(&mut self) {
-        unimplemented!()
+        let (y, x) = (self.pin / 32, self.pin % 32);
+        let clr_y = &mut self.registers.CLR[y as usize];
+        clr_y.write(1 << x);
     }
 }
 
@@ -135,6 +149,8 @@ impl Gpio<Input> {
     /// Reads the pin's value. Returns `true` if the level is high and `false`
     /// if the level is low.
     pub fn level(&mut self) -> bool {
-        unimplemented!()
+        let (y, x) = (self.pin / 32, self.pin % 32);
+        let lev_y = &mut self.registers.LEV[y as usize];
+        lev_y.read() & (1 << x) != 0
     }
 }

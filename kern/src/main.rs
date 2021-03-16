@@ -19,23 +19,35 @@ use core::time::Duration;
 
 // FIXME: You need to add dependencies here to
 // test your drivers (Phase 2). Add them as needed.
+use pi::gpio;
 use pi::timer;
 
-unsafe fn kmain() -> ! {
-    const GPIO_BASE: usize = 0x3F000000 + 0x200000;
+fn kmain() -> ! {
+    let mut pin16 = gpio::Gpio::new(16).into_output();
+    let mut pin26 = gpio::Gpio::new(26).into_output();
+    let mut pin19 = gpio::Gpio::new(19).into_output();
+    let mut pin13 = gpio::Gpio::new(13).into_output();
+    let mut pin6 = gpio::Gpio::new(6).into_output();
+    let mut pin5 = gpio::Gpio::new(5).into_output();
 
-    const GPIO_FSEL1: *mut u32 = (GPIO_BASE + 0x04) as *mut u32;
-    const GPIO_SET0: *mut u32 = (GPIO_BASE + 0x1C) as *mut u32;
-    const GPIO_CLR0: *mut u32 = (GPIO_BASE + 0x28) as *mut u32;
+    let mut pins = [pin16, pin26, pin19, pin13, pin6, pin5];
+    let mut i = 0;
+    let mut dir = 1i32;
 
-    // STEP 1: Set GPIO Pin 16 as output.
-    GPIO_FSEL1
-        .write_volatile((GPIO_FSEL1.read_volatile() & !(0b111 << (6 * 3))) | (0b001 << (6 * 3)));
-    // STEP 2: Continuously set and clear GPIO 16.
     loop {
-        GPIO_SET0.write_volatile(0b1 << 16);
-        timer::spin_sleep(Duration::from_secs(1));
-        GPIO_CLR0.write_volatile(0b1 << 16);
-        timer::spin_sleep(Duration::from_secs(1));
+        if dir == 1 {
+            pins[i].clear();
+            pins[i + 1].set();
+        } else {
+            pins[i - 1].set();
+            pins[i].clear();
+        }
+        timer::spin_sleep(Duration::from_millis(150));
+        i = (i as i32 + dir) as usize;
+        if i == 0 {
+            dir = 1;
+        } else if i == 5 {
+            dir = -1;
+        }
     }
 }
