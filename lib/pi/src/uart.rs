@@ -136,16 +136,15 @@ impl MiniUart {
     }
 }
 
-// FIXME: Implement `fmt::Write` for `MiniUart`. A b'\r' byte should be written
+// Implement `fmt::Write` for `MiniUart`. A b'\r' byte should be written
 // before writing any b'\n' byte.
 
 mod uart_io {
     use super::io;
     use super::MiniUart;
+    use shim::ioerr;
     use volatile::prelude::*;
 
-    // FIXME: Implement `io::Read` and `io::Write` for `MiniUart`.
-    //
     // The `io::Read::read()` implementation must respect the read timeout by
     // waiting at most that time for the _first byte_. It should not wait for
     // any additional bytes but _should_ read as many bytes as possible. If the
@@ -153,4 +152,37 @@ mod uart_io {
     //
     // The `io::Write::write()` method must write all of the requested bytes
     // before returning.
+
+    impl io::Read for MiniUart {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            if let Err(()) = self.wait_for_byte() {
+                return ioerr!(TimedOut, "MiniUart read timed out");
+            }
+            let mut count = 0;
+            for b in buf {
+                if !self.has_byte() {
+                    break;
+                }
+                *b = self.read_byte();
+                count += 1;
+            }
+            Ok(count)
+        }
+    }
+
+    impl io::Write for MiniUart {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            for b in buf {
+                if *b == b'\n' {
+                    self.write_byte(b'\r');
+                }
+                self.write_byte(*b);
+            }
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
 }
