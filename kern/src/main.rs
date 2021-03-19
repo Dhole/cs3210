@@ -28,8 +28,10 @@ fn kmain() -> ! {
     let mut flip = false;
     loop {
         // uart.write_byte(0x41);
+        // let b = uart.read_byte();
+        // uart.write_byte(b);
         let b = uart.read_byte();
-        uart.write_byte(b);
+        kprintln!(">{}", b);
         // spin_sleep(Duration::from_millis(200));
         if flip {
             gpio5.set();
