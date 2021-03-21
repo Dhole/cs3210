@@ -14,32 +14,13 @@ pub mod console;
 pub mod mutex;
 pub mod shell;
 
-use console::kprintln;
-use core::time::Duration;
+// use console::Console;
 
-use pi::gpio;
-use pi::timer::{self, spin_sleep};
-use pi::uart;
+// use ::shell::shell_io;
 
 fn kmain() -> ! {
-    let mut uart = uart::MiniUart::new();
-    let mut gpio5 = gpio::Gpio::new(5).into_output();
-    let mut gpio26 = gpio::Gpio::new(26).into_output();
-    let mut flip = false;
-    loop {
-        // uart.write_byte(0x41);
-        // let b = uart.read_byte();
-        // uart.write_byte(b);
-        let b = uart.read_byte();
-        kprintln!(">{}", b);
-        // spin_sleep(Duration::from_millis(200));
-        if flip {
-            gpio5.set();
-            gpio26.clear();
-        } else {
-            gpio5.clear();
-            gpio26.set();
-        }
-        flip = !flip;
-    }
+    // let mut console = Console::new();
+    // console.initialize();
+    // shell_io("> ", console);
+    shell::shell("> ");
 }

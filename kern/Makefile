@@ -11,7 +11,7 @@ all: build
 
 build:
 	@echo "+ Building build/$(KERN).elf [xbuild/$@]"
-	@cargo xbuild --release
+	@cargo xbuild --verbose --release
 	@mkdir -p build
 	@cp -f $(TARGET) build/$(KERN).elf
 

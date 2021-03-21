@@ -17,6 +17,13 @@ memcpy = true
 pi = { path = "../lib/pi" }
 shim = { path = "../lib/shim", features = ["no_std"] }
 stack-vec = { path = "../lib/stack-vec/" }
+shell = { path = "../lib/shell/" }
 
 [dev-dependencies]
 shim = { path = "../lib/shim"}
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
