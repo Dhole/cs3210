@@ -361,7 +361,8 @@ impl<T: io::Read + io::Write> Xmodem<T> {
         }
 
         (self.progress)(Progress::Packet(self.packet));
-        self.packet += 1;
+        let (packet, _) = self.packet.overflowing_add(1);
+        self.packet = packet;
         Ok(PACKET_LEN)
     }
 

@@ -92,7 +92,8 @@ fn main() {
         parity: serial::ParityNone,
         stop_bits: opt.stop_bits,
         flow_control: opt.flow_control,
-    });
+    })
+    .expect("configure port");
     port.set_timeout(Duration::from_secs(opt.timeout))
         .expect("set timeout");
 
