@@ -40,6 +40,8 @@ struct Registers {
     BAUD: Volatile<u32>,
 }
 
+const_assert_size!(Registers, 0x7E21506C - 0x7E215040);
+
 /// The Raspberry Pi's "mini UART".
 pub struct MiniUart {
     registers: &'static mut Registers,

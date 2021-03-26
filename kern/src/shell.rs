@@ -3,6 +3,19 @@ use crate::console::CONSOLE;
 use shell::shell_io;
 
 // use crate::console::{kprint, kprintln, CONSOLE};
+use shim::io;
+use shim::path::{Path, PathBuf};
+
+use stack_vec::StackVec;
+
+use pi::atags::Atags;
+
+use fat32::traits::FileSystem;
+use fat32::traits::{Dir, Entry};
+
+use crate::console::{kprint, kprintln, CONSOLE};
+use crate::ALLOCATOR;
+use crate::FILESYSTEM;
 
 // /// Error type for `Command` parse failures.
 // #[derive(Debug)]
@@ -69,7 +82,7 @@ use shell::shell_io;
 // }
 
 /// Starts a shell using `prefix` as the prefix for each line. This function
-/// returns if the `exit` command is called.
+/// never returns.
 pub fn shell(prefix: &str) -> ! {
     let mut console = CONSOLE.lock();
     shell_io(prefix, &mut *console);

@@ -1,6 +1,5 @@
+use crate::common::{states, GPIO_BASE};
 use core::marker::PhantomData;
-
-use crate::common::{states, IO_BASE};
 use volatile::prelude::*;
 use volatile::{ReadVolatile, Reserved, Volatile, WriteVolatile};
 
@@ -66,9 +65,6 @@ pub struct Gpio<State> {
     registers: &'static mut Registers,
     _state: PhantomData<State>,
 }
-
-/// The base address of the `GPIO` registers.
-const GPIO_BASE: usize = IO_BASE + 0x200000;
 
 impl<T> Gpio<T> {
     /// Transitions `self` to state `S`, consuming `self` and returning a new
