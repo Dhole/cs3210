@@ -21,6 +21,24 @@ const CAN: u8 = 0x18;
 
 const PACKET_LEN: usize = 128;
 
+pub fn wait_msg<R: io::Read>(mut r: R, msg: &str) {
+    let msg = msg.as_bytes();
+    let mut i = 0;
+    let mut input = [0];
+    while i < msg.len() {
+        i = match r.read_exact(&mut input) {
+            Err(_) => 0,
+            Ok(_) => {
+                if msg[i] == input[0] {
+                    i + 1
+                } else {
+                    0
+                }
+            }
+        }
+    }
+}
+
 /// Implementation of the XMODEM protocol.
 pub struct Xmodem<R> {
     packet: u8,

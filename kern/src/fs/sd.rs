@@ -1,3 +1,4 @@
+/*
 use core::time::Duration;
 use shim::io;
 use shim::ioerr;
@@ -68,3 +69,4 @@ impl BlockDevice for Sd {
         unimplemented!("SD card and file system are read only")
     }
 }
+*/

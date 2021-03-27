@@ -15,17 +15,17 @@ extern crate alloc;
 
 pub mod allocator;
 pub mod console;
-pub mod fs;
+// pub mod fs;
 pub mod mutex;
 pub mod shell;
 
-// use console::Console;
 use allocator::Allocator;
-use fs::FileSystem;
+use console::kprintln;
+// use fs::FileSystem;
 
 #[cfg_attr(not(test), global_allocator)]
 pub static ALLOCATOR: Allocator = Allocator::uninitialized();
-pub static FILESYSTEM: FileSystem = FileSystem::uninitialized();
+// pub static FILESYSTEM: FileSystem = FileSystem::uninitialized();
 
 // use ::shell::shell_io;
 
@@ -35,8 +35,8 @@ fn kmain() -> ! {
     // shell_io("> ", console);
 
     unsafe {
-        ALLOCATOR.initialize();
-        FILESYSTEM.initialize();
+        // ALLOCATOR.initialize();
+        // FILESYSTEM.initialize();
     }
 
     kprintln!("Welcome to cs3210!");

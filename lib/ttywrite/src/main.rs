@@ -4,8 +4,9 @@ use serial;
 use serial::prelude::*;
 use structopt;
 use structopt_derive::StructOpt;
-use xmodem::{Progress, Xmodem};
+use xmodem::{self, Progress, Xmodem};
 
+use std::io::Write;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -105,6 +106,8 @@ fn main() {
     let n = if opt.raw {
         io::copy(&mut input, &mut port).expect("copy input to output") as usize
     } else {
+        port.write_all("HELLO\n".as_bytes()).unwrap();
+        xmodem::wait_msg(&mut port, "HELLO\r\n");
         Xmodem::transmit_with_progress(&mut input, &mut port, progress_fn).expect("xmodem transmit")
     };
     println!("Wrote {} bytes to output", n);
