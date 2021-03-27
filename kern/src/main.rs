@@ -1,3 +1,4 @@
+#![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
 #![feature(const_fn)]
 #![feature(decl_macro)]

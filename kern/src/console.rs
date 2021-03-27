@@ -67,6 +67,24 @@ impl fmt::Write for Console {
 /// Global `Console` singleton.
 pub static CONSOLE: Mutex<Console> = Mutex::new(Console::new());
 
+impl io::Write for &Mutex<Console> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let mut console = self.lock();
+        console.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+impl io::Read for &Mutex<Console> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let mut console = self.lock();
+        console.read(buf)
+    }
+}
+
 /// Internal function called by the `kprint[ln]!` macros.
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {

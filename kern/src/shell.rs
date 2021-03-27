@@ -85,6 +85,5 @@ use crate::ALLOCATOR;
 /// Starts a shell using `prefix` as the prefix for each line. This function
 /// never returns.
 pub fn shell(prefix: &str) -> ! {
-    let mut console = CONSOLE.lock();
-    shell_io(prefix, &mut *console);
+    shell_io(prefix, &CONSOLE);
 }
