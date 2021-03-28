@@ -22,6 +22,7 @@ pub mod shell;
 
 use allocator::Allocator;
 use console::kprintln;
+use pi::atags::Atags;
 // use fs::FileSystem;
 
 #[cfg_attr(not(test), global_allocator)]
@@ -39,7 +40,11 @@ fn kmain() -> ! {
         // ALLOCATOR.initialize();
         // FILESYSTEM.initialize();
     }
-
     kprintln!("Welcome to cs3210!");
+    kprintln!("Atags:");
+    for atag in Atags::get() {
+        kprintln!("{:#?}", atag);
+    }
+
     shell::shell("> ");
 }

@@ -1,3 +1,4 @@
+#![feature(ptr_offset_from)]
 #![feature(core_intrinsics)]
 #![feature(const_fn)]
 #![feature(asm)]

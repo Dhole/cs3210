@@ -23,9 +23,12 @@ impl Atags {
 impl Iterator for Atags {
     type Item = Atag;
 
-    // FIXME: Implement `Iterator` for `Atags`
     fn next(&mut self) -> Option<Atag> {
-        unimplemented!()
+        if let Some(atag) = self.ptr {
+            core::mem::replace(&mut self.ptr, atag.next()).map(|a| Atag::from(a))
+        } else {
+            None
+        }
     }
 }
 
