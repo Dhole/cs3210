@@ -20,6 +20,7 @@ pub mod console;
 pub mod mutex;
 pub mod shell;
 
+use allocator::memory_map;
 use allocator::Allocator;
 use console::kprintln;
 use pi::atags::Atags;
@@ -36,8 +37,10 @@ fn kmain() -> ! {
     // console.initialize();
     // shell_io("> ", console);
 
+    let (start, end) = memory_map().unwrap();
+    kprintln!("Memory map: 0x{:x}, 0x{:x}", start, end);
     unsafe {
-        // ALLOCATOR.initialize();
+        ALLOCATOR.initialize();
         // FILESYSTEM.initialize();
     }
     kprintln!("Welcome to cs3210!");
