@@ -49,5 +49,12 @@ fn kmain() -> ! {
         kprintln!("{:#?}", atag);
     }
 
+    use alloc::vec::Vec;
+    let mut v = Vec::new();
+    for i in 0..50 {
+        v.push(i);
+        kprintln!("{:?}", v);
+    }
+
     shell::shell("> ");
 }
