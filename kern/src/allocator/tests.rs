@@ -226,6 +226,8 @@ mod allocator {
         }
     });
 
+    // use crate::console::kprintln;
+
     test_allocators!(@bin, bin_dealloc_1, 65536, |(_, _, mut a)| {
         let layouts = [
             layout!(16, 16),
@@ -240,6 +242,7 @@ mod allocator {
         // and proper alignment after binning
         for (i, layout) in layouts.iter().enumerate() {
             let mut ptrs = vec![];
+            // kprintln!("DBG test layout {}: {:?}", i, layout);
             for _ in 0..(25 + i * 2) {
                 let ptr = a.alloc(layout.clone());
                 assert!(!ptr.is_null());

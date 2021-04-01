@@ -155,10 +155,13 @@ pub struct Node {
     value: *mut usize,
 }
 
+// use crate::console::kprintln;
+
 impl Node {
     /// Removes and returns the value of this item from the linked list it
     /// belongs to.
     pub fn pop(self) -> *mut usize {
+        // kprintln!("DBG pop: prev: {:?}, value: {:?}", self.prev, self.value);
         unsafe {
             *(self.prev) = *(self.value);
         }
