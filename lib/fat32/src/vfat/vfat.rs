@@ -39,7 +39,17 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
     where
         T: BlockDevice + 'static,
     {
-        unimplemented!("VFat::from()")
+        // let num_sectors = 0xffff_ffff;
+        // let sector_size = device.sector_size();
+        // Ok(HANDLE::new(VFat{
+        //     phantom: PhantomData<HANDLE>,
+        //     device: CachedPartition::new(device, Partition{
+        //         start: 0,
+        //         num_sectors,
+        //         sector_size,
+        //     })
+        // }))
+        unimplemented!();
     }
 
     // TODO: The following methods may be useful here:

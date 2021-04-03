@@ -13,4 +13,31 @@ pub enum Entry<HANDLE: VFatHandle> {
 
 impl<HANDLE: VFatHandle> traits::Entry for Entry<HANDLE> {
     // FIXME: Implement `traits::Entry` for `Entry`.
+    type File = File<HANDLE>;
+    type Dir = Dir<HANDLE>;
+    type Metadata = Metadata;
+
+    fn name(&self) -> &str {
+        unimplemented!()
+    }
+
+    fn metadata(&self) -> &Self::Metadata {
+        unimplemented!()
+    }
+
+    fn as_file(&self) -> Option<&<Self as traits::Entry>::File> {
+        unimplemented!()
+    }
+
+    fn as_dir(&self) -> Option<&<Self as traits::Entry>::Dir> {
+        unimplemented!()
+    }
+
+    fn into_file(self) -> Option<<Self as traits::Entry>::File> {
+        unimplemented!()
+    }
+
+    fn into_dir(self) -> Option<<Self as traits::Entry>::Dir> {
+        unimplemented!()
+    }
 }

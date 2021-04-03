@@ -17,9 +17,22 @@ pub struct Dir<HANDLE: VFatHandle> {
     // FIXME: Fill me in.
 }
 
+pub struct DirIter<HANDLE: VFatHandle> {
+    dir: Dir<HANDLE>,
+}
+
+impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
+    type Item = Entry<HANDLE>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unimplemented!()
+    }
+}
+
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct VFatRegularDirEntry {
+    _tmp: [u8; 32],
     // FIXME: Fill me in.
 }
 
@@ -28,6 +41,7 @@ const_assert_size!(VFatRegularDirEntry, 32);
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct VFatLfnDirEntry {
+    _tmp: [u8; 32],
     // FIXME: Fill me in.
 }
 
@@ -36,6 +50,7 @@ const_assert_size!(VFatLfnDirEntry, 32);
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct VFatUnknownDirEntry {
+    _tmp: [u8; 32],
     // FIXME: Fill me in.
 }
 
@@ -65,4 +80,10 @@ impl<HANDLE: VFatHandle> Dir<HANDLE> {
 
 impl<HANDLE: VFatHandle> traits::Dir for Dir<HANDLE> {
     // FIXME: Implement `trait::Dir` for `Dir`.
+    type Entry = Entry<HANDLE>;
+    type Iter = DirIter<HANDLE>;
+
+    fn entries(&self) -> io::Result<Self::Iter> {
+        unimplemented!()
+    }
 }

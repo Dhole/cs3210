@@ -12,6 +12,15 @@ pub struct File<HANDLE: VFatHandle> {
 }
 
 // FIXME: Implement `traits::File` (and its supertraits) for `File`.
+impl<HANDLE: VFatHandle> traits::File for File<HANDLE> {
+    fn sync(&mut self) -> io::Result<()> {
+        unimplemented!()
+    }
+
+    fn size(&self) -> u64 {
+        unimplemented!()
+    }
+}
 
 impl<HANDLE: VFatHandle> io::Seek for File<HANDLE> {
     /// Seek to offset `pos` in the file.
@@ -29,5 +38,20 @@ impl<HANDLE: VFatHandle> io::Seek for File<HANDLE> {
     /// in an `InvalidInput` error.
     fn seek(&mut self, _pos: SeekFrom) -> io::Result<u64> {
         unimplemented!("File::seek()")
+    }
+}
+
+impl<HANDLE: VFatHandle> io::Read for File<HANDLE> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        unimplemented!()
+    }
+}
+
+impl<HANDLE: VFatHandle> io::Write for File<HANDLE> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        unimplemented!()
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        unimplemented!()
     }
 }

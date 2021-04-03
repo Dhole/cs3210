@@ -6,6 +6,7 @@ use crate::vfat::Error;
 
 #[repr(C, packed)]
 pub struct BiosParameterBlock {
+    _tmp: [u8; 512],
     // FIXME: Fill me in.
 }
 

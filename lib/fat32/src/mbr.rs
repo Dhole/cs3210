@@ -7,6 +7,7 @@ use crate::traits::BlockDevice;
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct CHS {
+    _tmp: [u8; 3],
     // FIXME: Fill me in.
 }
 
@@ -16,6 +17,7 @@ const_assert_size!(CHS, 3);
 
 #[repr(C, packed)]
 pub struct PartitionEntry {
+    _tmp: [u8; 16],
     // FIXME: Fill me in.
 }
 
@@ -26,7 +28,16 @@ const_assert_size!(PartitionEntry, 16);
 /// The master boot record (MBR).
 #[repr(C, packed)]
 pub struct MasterBootRecord {
+    _tmp: [u8; 512],
     // FIXME: Fill me in.
+}
+
+use core::fmt::Debug;
+
+impl Debug for MasterBootRecord {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        unimplemented!()
+    }
 }
 
 // FIXME: implemente Debug for MaterBootRecord
