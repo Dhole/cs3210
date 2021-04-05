@@ -13,12 +13,12 @@ pub fn split_sector_cylinder(bytes: [u8; 2]) -> (u8, u16) {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct CHS {
-    head: u8,
+    pub head: u8,
     _sector_cylinder: [u8; 2],
 }
 
 impl CHS {
-    fn sector_cylinder(&self) -> (u8, u16) {
+    pub fn sector_cylinder(&self) -> (u8, u16) {
         split_sector_cylinder(self._sector_cylinder)
     }
 }
@@ -39,12 +39,12 @@ const_assert_size!(CHS, 3);
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct PartitionEntry {
-    boot_indicator: u8,
-    starting_chs: CHS,
-    partition_type: u8,
-    ending_chs: CHS,
-    relative_sector: u32,
-    total_sectors: u32,
+    pub boot_indicator: u8,
+    pub starting_chs: CHS,
+    pub partition_type: u8,
+    pub ending_chs: CHS,
+    pub relative_sector: u32,
+    pub total_sectors: u32,
 }
 
 impl Debug for PartitionEntry {
@@ -66,9 +66,9 @@ const_assert_size!(PartitionEntry, 16);
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct MasterBootRecord {
-    bootstrap: [u8; 436],
-    disk_id: [u8; 10],
-    partition_table: [PartitionEntry; 4],
+    pub bootstrap: [u8; 436],
+    pub disk_id: [u8; 10],
+    pub partition_table: [PartitionEntry; 4],
     signature: [u8; 2],
 }
 

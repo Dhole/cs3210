@@ -197,17 +197,17 @@ impl BlockDevice for BlockDeviceCached {
     }
 
     fn read_sector(&mut self, sector: u64, buf: &mut [u8]) -> io::Result<usize> {
-        let read_bytes = cmp::min(self.sector_size() as usize, buf.len());
+        let to_read = cmp::min(self.sector_size() as usize, buf.len());
         let sector_data = self.get(sector)?;
-        buf[..read_bytes].copy_from_slice(&sector_data[..read_bytes]);
-        Ok(read_bytes)
+        buf[..to_read].copy_from_slice(&sector_data[..to_read]);
+        Ok(to_read)
     }
 
     fn write_sector(&mut self, sector: u64, buf: &[u8]) -> io::Result<usize> {
-        let write_bytes = cmp::min(self.sector_size() as usize, buf.len());
+        let to_write = cmp::min(self.sector_size() as usize, buf.len());
         let sector_data = self.get_mut(sector)?;
-        sector_data[..write_bytes].copy_from_slice(&buf[..write_bytes]);
-        Ok(write_bytes)
+        sector_data[..to_write].copy_from_slice(&buf[..to_write]);
+        Ok(to_write)
     }
 }
 

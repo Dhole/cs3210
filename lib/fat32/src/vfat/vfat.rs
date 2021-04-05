@@ -13,7 +13,7 @@ use shim::path::Path;
 use crate::mbr::MasterBootRecord;
 use crate::traits::{BlockDevice, FileSystem};
 use crate::util::SliceExt;
-use crate::vfat::{BiosParameterBlock, CachedPartition, Partition};
+use crate::vfat::{BiosParameterBlock, BlockDeviceCached, BlockDevicePartition, Partition};
 use crate::vfat::{Cluster, Dir, Entry, Error, FatEntry, File, Status};
 
 /// A generic trait that handles a critical section as a closure
@@ -25,7 +25,8 @@ pub trait VFatHandle: Clone + Debug + Send + Sync {
 #[derive(Debug)]
 pub struct VFat<HANDLE: VFatHandle> {
     phantom: PhantomData<HANDLE>,
-    device: CachedPartition,
+    // device: CachedPartition,
+    device: Box<dyn BlockDevice>,
     bytes_per_sector: u16,
     sectors_per_cluster: u8,
     sectors_per_fat: u32,
@@ -35,20 +36,56 @@ pub struct VFat<HANDLE: VFatHandle> {
 }
 
 impl<HANDLE: VFatHandle> VFat<HANDLE> {
+    pub fn from_mbr_part0<T>(mut device: T) -> Result<HANDLE, Error>
+    where
+        T: BlockDevice + 'static,
+    {
+        let phy_sector_size = device.sector_size();
+        let mbr = MasterBootRecord::from(&mut device)?;
+        let part_data = mbr.partition_table[0];
+        if part_data.partition_type != 0xB && part_data.partition_type != 0xC {
+            return Err(Error::NotFound);
+        }
+        let start_phy_sector = part_data.relative_sector;
+        let phy_sectors = part_data.total_sectors;
+        let ebpb = BiosParameterBlock::from(&mut device, start_phy_sector as u64)?;
+        let logical_sector_size = ebpb.bytes_per_sector;
+        if (logical_sector_size as u64) < phy_sector_size {
+            return Err(Error::Fat("logical sector size < physical sector size"));
+        }
+        let logical_sectors = ebpb.logical_sectors();
+        let factor = logical_sector_size as u32 / phy_sector_size as u32;
+        if logical_sectors > phy_sectors.saturating_mul(factor) {
+            return Err(Error::Fat(
+                "logical sectors exceeds physical sectors * factor",
+            ));
+        }
+        let part = BlockDevicePartition::new(
+            device,
+            Partition {
+                start: start_phy_sector as u64,
+                num_sectors: logical_sectors as u64,
+                sector_size: logical_sector_size as u64,
+            },
+        );
+        let part_cached = BlockDeviceCached::new(part);
+        Ok(HANDLE::new(VFat {
+            phantom: PhantomData::<HANDLE>,
+            device: Box::new(part_cached),
+            bytes_per_sector: logical_sector_size,
+            sectors_per_cluster: ebpb.sectors_per_cluster,
+            sectors_per_fat: ebpb.sectors_per_fat(),
+            fat_start_sector: ebpb.reserved_sectors as u64,
+            data_start_sector: ebpb.reserved_sectors as u64
+                + ebpb.fats as u64 * ebpb.sectors_per_fat() as u64,
+            rootdir_cluster: Cluster::from(ebpb.rootdir_cluster),
+        }))
+    }
+
     pub fn from<T>(mut device: T) -> Result<HANDLE, Error>
     where
         T: BlockDevice + 'static,
     {
-        // let num_sectors = 0xffff_ffff;
-        // let sector_size = device.sector_size();
-        // Ok(HANDLE::new(VFat{
-        //     phantom: PhantomData<HANDLE>,
-        //     device: CachedPartition::new(device, Partition{
-        //         start: 0,
-        //         num_sectors,
-        //         sector_size,
-        //     })
-        // }))
         unimplemented!();
     }
 

@@ -88,7 +88,8 @@ macro hash_for($name:expr) {{
 }}
 
 macro vfat_from_resource($name:expr) {
-    VFat::<StdVFatHandle>::from(resource!($name)).expect("failed to initialize VFAT from image")
+    VFat::<StdVFatHandle>::from_mbr_part0(resource!($name))
+        .expect("failed to initialize VFAT from image")
 }
 
 #[test]
@@ -141,7 +142,7 @@ fn check_ebpb_size() {
 #[test]
 fn check_ebpb_signature() {
     let mut data = [0u8; 1024];
-    data[510..512].copy_from_slice(&[0x55, 0xAA]);
+    // data[510..512].copy_from_slice(&[0x55, 0xAA]);
     data[66] = 0x28;
 
     let e = BiosParameterBlock::from(Cursor::new(&mut data[..]), 1).unwrap_err();
@@ -402,6 +403,7 @@ fn test_mock4_files_recursive() {
     assert_hash_eq!("mock 4 file hashes", hash, hash_for!("files-2-3-4"));
 }
 
+#[derive(Debug)]
 struct Shuffle<T: BlockDevice> {
     device: T,
     swap_address: u64,
@@ -473,8 +475,109 @@ impl<T: BlockDevice> BlockDevice for Shuffle<T> {
 #[test]
 fn shuffle_test() {
     let shuffle = Shuffle::new(resource!("mock1.fat32.img"), 0x896ca0);
-    let vfat = VFat::<StdVFatHandle>::from(shuffle).expect("failed to initialize VFAT from image");
+    let vfat = VFat::<StdVFatHandle>::from_mbr_part0(shuffle)
+        .expect("failed to initialize VFAT from image");
 
     let hash = hash_files_recursive_from(vfat, "/");
     assert_hash_eq!("mock 1 file hashes", hash, hash_for!("files-1"));
+}
+
+use crate::vfat::cache::{BlockDeviceCached, BlockDevicePartition, Partition};
+
+fn block_device_testdata() -> Cursor<Vec<u8>> {
+    let mut v = vec![0; 4096];
+    for b in v[..512].iter_mut() {
+        *b = 0xAA;
+    }
+    for b in v[512..1024].iter_mut() {
+        *b = 0xBB;
+    }
+    Cursor::new(v)
+}
+
+#[test]
+fn block_device_test() {
+    // BlockDevice
+    let mut bd = block_device_testdata();
+    let mut sector_data = [0; 512];
+    assert_eq!(
+        512,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    assert_eq!([0xAAu8; 512].to_vec(), sector_data.to_vec());
+    let mut sector_data = [0; 100];
+    assert_eq!(
+        100,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    assert_eq!([0xAAu8; 100].to_vec(), sector_data.to_vec());
+
+    // BlockDevicePartition (1)
+    let bd = block_device_testdata();
+    let mut bd = BlockDevicePartition::new(
+        bd,
+        Partition {
+            start: 1,
+            num_sectors: 2,
+            sector_size: 512,
+        },
+    );
+    let mut sector_data = [0; 512];
+    assert_eq!(
+        512,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    assert_eq!([0xBBu8; 512].to_vec(), sector_data.to_vec());
+    assert_eq!(
+        512,
+        bd.read_sector(1, &mut sector_data).expect("read_sector")
+    );
+    assert_eq!([0x00u8; 512].to_vec(), sector_data.to_vec());
+    let mut sector_data = [0; 100];
+    assert_eq!(
+        100,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    assert_eq!([0xBBu8; 100].to_vec(), sector_data.to_vec());
+
+    // BlockDevicePartition (2)
+    let bd = block_device_testdata();
+    let mut bd = BlockDevicePartition::new(
+        bd,
+        Partition {
+            start: 1,
+            num_sectors: 2,
+            sector_size: 1024,
+        },
+    );
+    let mut sector_data = [0; 1024];
+    assert_eq!(
+        1024,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    let mut expect = vec![0xBBu8; 512];
+    expect.extend([0x00u8; 512].iter());
+    assert_eq!(expect, sector_data.to_vec());
+
+    let mut sector_data = [0; 512];
+    assert_eq!(
+        512,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    assert_eq!([0xBBu8; 512].to_vec(), sector_data.to_vec());
+
+    // BlockDeviceCached (1)
+    let bd = block_device_testdata();
+    let mut bd = BlockDeviceCached::new(bd);
+    let mut sector_data = [0; 512];
+    assert_eq!(
+        512,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    assert_eq!([0xAAu8; 512].to_vec(), sector_data.to_vec());
+    assert_eq!(
+        512,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    assert_eq!([0xAAu8; 512].to_vec(), sector_data.to_vec());
 }

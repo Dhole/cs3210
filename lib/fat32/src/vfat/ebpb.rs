@@ -9,33 +9,33 @@ use crate::vfat::Error;
 pub struct BiosParameterBlock {
     jmp_short_xx_nop: [u8; 3],
     _oem_id: [u8; 8],
-    bytes_per_sector: u16,
-    sectors_per_cluster: u8,
-    reserved_sectors: u16,
-    fats: u8,
-    max_num_dir: u16,
-    logical_sectors_16: u16,
-    fat_id: u8,
-    sectors_per_fat_16: u16,
-    sectors_per_track: u16,
-    heads: u16,
-    hidden_sectors: u32,
-    logical_sectors_32: u32,
-    sectors_per_fat_32: u32,
-    flags: u16,
-    fat_version: [u8; 2],
-    root_dir_cluster: u32,
-    fsinfo_sector: u16,
-    boot_sector_backup_sector: u16,
-    reserved: [u8; 12],
-    drive_num: u8,
-    flags_winnt: u8,
-    signature: u8,
-    volume_id: u32,
+    pub bytes_per_sector: u16,   // bytes per logical sector
+    pub sectors_per_cluster: u8, // logical sectors per cluster
+    pub reserved_sectors: u16,   // reserved logical sectors
+    pub fats: u8,
+    pub max_num_dir: u16,
+    pub logical_sectors_16: u16,
+    pub fat_id: u8,
+    pub sectors_per_fat_16: u16,
+    pub sectors_per_track: u16,
+    pub heads: u16,
+    pub hidden_sectors: u32,
+    pub logical_sectors_32: u32, // total logical sectors
+    pub sectors_per_fat_32: u32, // logical sectors per fat
+    pub flags: u16,
+    pub fat_version: [u8; 2],
+    pub rootdir_cluster: u32,
+    pub fsinfo_sector: u16,
+    pub boot_sector_backup_sector: u16,
+    pub reserved: [u8; 12],
+    pub drive_num: u8,
+    pub flags_winnt: u8,
+    pub signature: u8,
+    pub volume_id: u32,
     _volume_label: [u8; 11],
     _system_id: [u8; 8],
-    boot_code: [u8; 420],
-    boot_part_signature: [u8; 2],
+    pub boot_code: [u8; 420],
+    pub boot_part_signature: [u8; 2],
 }
 
 const_assert_size!(BiosParameterBlock, 512);
@@ -54,13 +54,10 @@ impl BiosParameterBlock {
         if ebpb.signature != 0x28 && ebpb.signature != 0x29 {
             return Err(Error::BadSignature);
         }
-        if ebpb.boot_part_signature != [0x55, 0xAA] {
-            return Err(Error::BadSignature);
-        }
         Ok(ebpb)
     }
 
-    fn logical_sectors(&self) -> u32 {
+    pub fn logical_sectors(&self) -> u32 {
         if self.logical_sectors_16 == 0 {
             self.logical_sectors_32
         } else {
@@ -68,7 +65,7 @@ impl BiosParameterBlock {
         }
     }
 
-    fn sectors_per_fat(&self) -> u32 {
+    pub fn sectors_per_fat(&self) -> u32 {
         if self.sectors_per_fat_16 == 0 {
             self.sectors_per_fat_32
         } else {
@@ -76,15 +73,15 @@ impl BiosParameterBlock {
         }
     }
 
-    fn oem_id(&self) -> alloc::borrow::Cow<'_, str> {
+    pub fn oem_id(&self) -> alloc::borrow::Cow<'_, str> {
         String::from_utf8_lossy(&self._oem_id)
     }
 
-    fn volume_label(&self) -> alloc::borrow::Cow<'_, str> {
+    pub fn volume_label(&self) -> alloc::borrow::Cow<'_, str> {
         String::from_utf8_lossy(&self._volume_label)
     }
 
-    fn system_id(&self) -> alloc::borrow::Cow<'_, str> {
+    pub fn system_id(&self) -> alloc::borrow::Cow<'_, str> {
         String::from_utf8_lossy(&self._system_id)
     }
 }
@@ -106,7 +103,7 @@ impl fmt::Debug for BiosParameterBlock {
             .field("hidden_sectors", &self.hidden_sectors)
             .field("flags", &self.flags)
             .field("fat_version", &self.fat_version)
-            .field("root_dir_cluster", &self.root_dir_cluster)
+            .field("rootdir_cluster", &self.rootdir_cluster)
             .field("fsinfo_sector", &self.fsinfo_sector)
             .field("boot_sector_backup_sector", &self.boot_sector_backup_sector)
             .field("drive_num", &self.drive_num)
