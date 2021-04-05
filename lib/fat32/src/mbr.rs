@@ -109,9 +109,9 @@ impl MasterBootRecord {
     /// boot indicator. Returns `Io(err)` if the I/O error `err` occured while
     /// reading the MBR.
     pub fn from<T: BlockDevice>(mut device: T) -> Result<MasterBootRecord, Error> {
-        let mut sector = vec![0; device.sector_size() as usize];
-        device.read_sector(0, &mut sector)?;
-        let mbr = unsafe { *{ sector.as_ptr() as *const MasterBootRecord } };
+        let mut sector_data = vec![0; device.sector_size() as usize];
+        device.read_sector(0, &mut sector_data)?;
+        let mbr = unsafe { *{ sector_data.as_ptr() as *const MasterBootRecord } };
         if mbr.signature != [0x55, 0xAA] {
             return Err(Error::BadSignature);
         }

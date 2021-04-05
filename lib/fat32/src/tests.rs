@@ -129,7 +129,8 @@ fn test_mbr() {
     let mut mbr = resource!("mbr.img");
     let mut data = [0u8; 512];
     mbr.read_exact(&mut data).expect("read resource data");
-    MasterBootRecord::from(Cursor::new(&mut data[..])).expect("valid MBR");
+    let mbr = MasterBootRecord::from(Cursor::new(&mut data[..])).expect("valid MBR");
+    println!("MBR: {:#?}", mbr);
 }
 
 #[test]
@@ -162,8 +163,10 @@ fn test_ebpb() {
         .read_exact(&mut data[512..])
         .expect("read resource data");
 
-    BiosParameterBlock::from(Cursor::new(&mut data[..]), 0).expect("valid EBPB");
-    BiosParameterBlock::from(Cursor::new(&mut data[..]), 1).expect("valid EBPB");
+    let ebp1 = BiosParameterBlock::from(Cursor::new(&mut data[..]), 0).expect("valid EBPB");
+    let ebp2 = BiosParameterBlock::from(Cursor::new(&mut data[..]), 1).expect("valid EBPB");
+    println!("ebp1: {:#?}", ebp1);
+    println!("ebp1: {:#?}", ebp2);
 }
 
 #[test]

@@ -4,7 +4,7 @@ use shim::io;
 
 /// Trait implemented by devices that can be read/written in sector
 /// granularities.
-pub trait BlockDevice: Send {
+pub trait BlockDevice: Send + core::fmt::Debug {
     /// Sector size in bytes. Must be a multiple of 512 >= 512. Defaults to 512.
     fn sector_size(&self) -> u64 {
         512

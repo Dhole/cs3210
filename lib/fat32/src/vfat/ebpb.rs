@@ -8,7 +8,7 @@ use crate::vfat::Error;
 #[repr(C, packed)]
 pub struct BiosParameterBlock {
     jmp_short_xx_nop: [u8; 3],
-    oem_id: [u8; 8],
+    _oem_id: [u8; 8],
     bytes_per_sector: u16,
     sectors_per_cluster: u8,
     reserved_sectors: u16,
@@ -47,13 +47,10 @@ impl BiosParameterBlock {
     /// # Errors
     ///
     /// If the EBPB signature is invalid, returns an error of `BadSignature`.
-    pub fn from<T: BlockDevice>(
-        mut device: T,
-        sector_num: u64,
-    ) -> Result<BiosParameterBlock, Error> {
-        let mut sector = vec![0; device.sector_size() as usize];
-        device.read_sector(sector_num, &mut sector)?;
-        let ebpb = unsafe { *{ sector.as_ptr() as *const BiosParameterBlock } };
+    pub fn from<T: BlockDevice>(mut device: T, sector: u64) -> Result<BiosParameterBlock, Error> {
+        let mut sector_data = vec![0; device.sector_size() as usize];
+        device.read_sector(sector, &mut sector_data)?;
+        let ebpb = unsafe { *{ sector_data.as_ptr() as *const BiosParameterBlock } };
         if ebpb.signature != 0x28 && ebpb.signature != 0x29 {
             return Err(Error::BadSignature);
         }
@@ -79,6 +76,10 @@ impl BiosParameterBlock {
         }
     }
 
+    fn oem_id(&self) -> alloc::borrow::Cow<'_, str> {
+        String::from_utf8_lossy(&self._oem_id)
+    }
+
     fn volume_label(&self) -> alloc::borrow::Cow<'_, str> {
         String::from_utf8_lossy(&self._volume_label)
     }
@@ -91,7 +92,7 @@ impl BiosParameterBlock {
 impl fmt::Debug for BiosParameterBlock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("BiosParameterBlock")
-            .field("oem_id", &self.oem_id)
+            .field("oem_id", &self.oem_id())
             .field("bytes_per_sector", &self.bytes_per_sector)
             .field("sectors_per_cluster", &self.sectors_per_cluster)
             .field("reserved_sectors", &self.reserved_sectors)
