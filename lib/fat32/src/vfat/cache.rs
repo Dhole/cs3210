@@ -70,6 +70,50 @@ impl BlockDevicePartition {
     }
 }
 
+pub fn read_n_sectors(
+    device: &mut dyn BlockDevice,
+    sector: u64,
+    n: usize,
+    buf: &mut [u8],
+) -> io::Result<usize> {
+    let sector_size = device.sector_size() as usize;
+    let buf_len = buf.len();
+    let mut read_bytes = 0;
+    for i in 0..n as usize {
+        let n = device.read_sector(
+            sector + i as u64,
+            &mut buf[i * sector_size..cmp::min(buf_len, (i + 1) * sector_size)],
+        )?;
+        read_bytes += n;
+        if n < sector_size {
+            break;
+        }
+    }
+    Ok(read_bytes)
+}
+
+pub fn write_n_sectors(
+    device: &mut dyn BlockDevice,
+    sector: u64,
+    n: usize,
+    buf: &[u8],
+) -> io::Result<usize> {
+    let sector_size = device.sector_size() as usize;
+    let buf_len = buf.len();
+    let mut write_bytes = 0;
+    for i in 0..n {
+        let n = device.write_sector(
+            sector + i as u64,
+            &buf[i * sector_size..cmp::min(buf_len, (i + 1) * sector_size)],
+        )?;
+        write_bytes += n;
+        if n < sector_size {
+            break;
+        }
+    }
+    Ok(write_bytes)
+}
+
 impl BlockDevice for BlockDevicePartition {
     fn sector_size(&self) -> u64 {
         self.partition.sector_size
@@ -80,20 +124,8 @@ impl BlockDevice for BlockDevicePartition {
             Some(s) => s,
             None => return ioerr!(InvalidInput, "virtual sector out of range"),
         };
-        let phy_sector_size = self.device.sector_size() as usize;
-        let buf_len = buf.len();
-        let mut read_bytes = 0;
-        for i in 0..self.factor() as usize {
-            let n = self.device.read_sector(
-                phy_sector + i as u64,
-                &mut buf[i * phy_sector_size..cmp::min(buf_len, (i + 1) * phy_sector_size)],
-            )?;
-            read_bytes += n;
-            if n < phy_sector_size {
-                break;
-            }
-        }
-        Ok(read_bytes)
+        let factor = self.factor() as usize;
+        read_n_sectors(self.device.as_mut(), phy_sector, factor, buf)
     }
 
     fn write_sector(&mut self, sector: u64, buf: &[u8]) -> io::Result<usize> {
@@ -101,20 +133,8 @@ impl BlockDevice for BlockDevicePartition {
             Some(s) => s,
             None => return ioerr!(InvalidInput, "virtual sector out of range"),
         };
-        let phy_sector_size = self.device.sector_size() as usize;
-        let buf_len = buf.len();
-        let mut write_bytes = 0;
-        for i in 0..self.factor() as usize {
-            let n = self.device.write_sector(
-                phy_sector + i as u64,
-                &buf[i * phy_sector_size..cmp::min(buf_len, (i + 1) * phy_sector_size)],
-            )?;
-            write_bytes += n;
-            if n < phy_sector_size {
-                break;
-            }
-        }
-        Ok(write_bytes)
+        let factor = self.factor() as usize;
+        write_n_sectors(self.device.as_mut(), phy_sector, factor, buf)
     }
 }
 
