@@ -21,3 +21,6 @@ RUN git config --global user.email "you@example.com"
 RUN git config --global user.name "Your Name"
 
 RUN bin/setup.sh
+
+RUN sudo groupmod -g 1002 user
+RUN sudo usermod -u 1002 -g 1002 user
