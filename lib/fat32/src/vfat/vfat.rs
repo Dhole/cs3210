@@ -92,12 +92,12 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
         unimplemented!();
     }
 
-    fn cluster_sector(&self, cluster: Cluster) -> u64 {
+    pub fn cluster_sector(&self, cluster: Cluster) -> u64 {
         self.fat_start_sector + cluster.raw() as u64 * self.sectors_per_cluster as u64
     }
 
     // Read from an offset of a cluster into a buffer.
-    fn read_cluster(
+    pub fn read_cluster(
         &mut self,
         cluster: Cluster,
         // offset: usize,
@@ -113,7 +113,7 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
     }
 
     // Read all of the clusters chained from a starting cluster into a vector.
-    fn read_chain(&mut self, start: Cluster, buf: &mut Vec<u8>) -> io::Result<usize> {
+    pub fn read_chain(&mut self, start: Cluster, buf: &mut Vec<u8>) -> io::Result<usize> {
         let mut sector_data = vec![0; self.device.sector_size() as usize];
         let mut next = start;
         let mut read_bytes = 0;
@@ -131,7 +131,7 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
 
     // Return a reference to a `FatEntry` for a cluster where the reference points directly into a
     // cached sector.
-    fn fat_entry(&mut self, cluster: Cluster) -> io::Result<FatEntry> {
+    pub fn fat_entry(&mut self, cluster: Cluster) -> io::Result<FatEntry> {
         use core::mem::size_of;
         let fat_entries_per_sector = self.device.sector_size() as usize / size_of::<FatEntry>();
         let sector = cluster.raw() as u64 / (fat_entries_per_sector as u64);

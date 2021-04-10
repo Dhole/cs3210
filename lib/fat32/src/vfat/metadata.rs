@@ -27,6 +27,9 @@ impl Date {
 pub struct Time(u16);
 
 impl Time {
+    pub fn from(t: u16) -> Self {
+        Self(t)
+    }
     pub fn second(&self) -> u8 {
         ((self.0 & 0b0000_0000__0001_1111) / 2) as u8
     }
