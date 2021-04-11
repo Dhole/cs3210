@@ -126,6 +126,7 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
                 status => return ioerr!(InvalidData, "Invalid chain fat entry"),
             }
         }
+        println!("DBG read_chain {:?}", start);
         Ok(read_bytes)
     }
 
@@ -144,15 +145,29 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
 }
 
 impl<'a, HANDLE: VFatHandle> FileSystem for &'a HANDLE {
-    type File = crate::traits::Dummy;
-    type Dir = crate::traits::Dummy;
-    type Entry = crate::traits::Dummy;
+    type File = File<HANDLE>;
+    type Dir = Dir<HANDLE>;
+    type Entry = Entry<HANDLE>;
 
     fn open<P: AsRef<Path>>(self, path: P) -> io::Result<Self::Entry> {
-        let mut entry = None;
-        let mut dir = root;
-        for name in path.as_ref().components() {
-            let entry = Some(dir.find(name)?);
+        use crate::traits::Entry;
+
+        let mut dir = Dir {
+            vfat: self.clone(),
+            first_cluster: self.lock(|vfat| vfat.rootdir_cluster),
+        };
+        let mut components = path.as_ref().components().peekable();
+        while let Some(name) = components.next() {
+            let entry = dir.find(name)?;
+            if let None = components.peek() {
+                return Ok(entry);
+            } else {
+                dir = match entry.into_dir() {
+                    Some(dir) => dir,
+                    None => return ioerr!(NotFound, "directory not found"),
+                }
+            }
         }
+        unreachable!()
     }
 }
