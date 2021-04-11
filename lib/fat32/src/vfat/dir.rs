@@ -25,11 +25,50 @@ pub struct DirIter<HANDLE: VFatHandle> {
     pos: usize,
 }
 
+fn regular_entry_name(regular_entry: &VFatRegularDirEntry) -> String {
+    let file_name_len = regular_entry
+        .file_name
+        .iter()
+        .position(|&b| b == 0x00 || b == 0x20)
+        .unwrap_or(regular_entry.file_name.len());
+    let file_ext_len = regular_entry
+        .file_ext
+        .iter()
+        .position(|&b| b == 0x00 || b == 0x20)
+        .unwrap_or(regular_entry.file_ext.len());
+    let mut name = String::from_utf8_lossy(&regular_entry.file_name[..file_name_len]).to_string();
+    if file_ext_len != 0 {
+        let ext = String::from_utf8_lossy(&regular_entry.file_ext[..file_ext_len]).to_string();
+        name += ".";
+        name += &ext;
+    }
+    name.to_string()
+}
+
 impl<HANDLE: VFatHandle> DirIter<HANDLE> {
-    pub fn entry_name(&self, regular_entry: &VFatRegularDirEntry, pos: usize) -> (String, usize) {
-        if !regular_entry.attributes.lfn() {
-            regular_entry.file_name
+    pub fn entry_name(&self, raw_entry: &VFatDirEntry, mut pos: usize) -> (String, usize) {
+        let unknown_entry = unsafe { &raw_entry.unknown };
+        if !unknown_entry.attributes.lfn() {
+            let regular_entry = unsafe { &raw_entry.regular };
+            (regular_entry_name(regular_entry), pos)
         } else {
+            let mut name = String::new();
+            loop {
+                let raw_entry = &self.raw_entries[pos];
+                let unknown_entry = unsafe { &raw_entry.unknown };
+                if !unknown_entry.attributes.lfn() {
+                    break;
+                }
+                pos += 1;
+                let lfn_entry = unsafe { &raw_entry.long_filename };
+                let mut raw_name = [0u16; 13];
+                raw_name[0..5].copy_from_slice(&lfn_entry.name0);
+                raw_name[5..11].copy_from_slice(&lfn_entry.name1);
+                raw_name[11..13].copy_from_slice(&lfn_entry.name2);
+                let part = String::from_utf16_lossy(&raw_name);
+                name = format!("{}{}", part, name);
+            }
+            (name, pos)
         }
     }
 }
@@ -38,7 +77,22 @@ impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
     type Item = Entry<HANDLE>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let regular_entry = unsafe { &self.raw_entries[self.pos].regular };
+        let mut raw_entry = &self.raw_entries[self.pos];
+        loop {
+            let unknown_entry = unsafe { raw_entry.unknown };
+            match unknown_entry.id {
+                0x00 => return None,
+                0xE5 => {
+                    self.pos += 1;
+                    raw_entry = &self.raw_entries[self.pos];
+                }
+                _ => break,
+            }
+        }
+        let (name, new_pos) = self.entry_name(&raw_entry, self.pos);
+        self.pos = new_pos;
+        let mut raw_entry = &self.raw_entries[self.pos];
+        let regular_entry = unsafe { raw_entry.regular };
         let first_cluster = regular_entry.first_cluster();
         let value = if regular_entry.attributes.directory() {
             EntryValue::Dir(Dir {
@@ -52,8 +106,7 @@ impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
             })
         };
         let metadata = regular_entry.metadata();
-        let (name, new_pos) = self.entry_name(&regular_entry, self.pos);
-        self.pos = new_pos;
+        self.pos += 1;
         Some(Entry {
             value,
             _metadata: metadata,
@@ -100,12 +153,6 @@ impl VFatRegularDirEntry {
                 time: Time::from(0),
             },
         }
-    }
-    pub fn name(&self) -> String {
-        unimplemented!()
-    }
-    pub fn entry<HANDLE: VFatHandle>(&self) -> Entry<HANDLE> {
-        unimplemented!()
     }
 }
 
@@ -155,7 +202,15 @@ impl<HANDLE: VFatHandle> Dir<HANDLE> {
     /// If `name` contains invalid UTF-8 characters, an error of `InvalidInput`
     /// is returned.
     pub fn find<P: AsRef<OsStr>>(&self, name: P) -> io::Result<Entry<HANDLE>> {
-        unimplemented!("Dir::find()")
+        use traits::Dir;
+        use traits::Entry;
+        let name = name
+            .as_ref()
+            .to_str()
+            .ok_or(newioerr!(InvalidInput, "name is not utf-8"))?;
+        self.entries()?
+            .find(|e| e.name().eq_ignore_ascii_case(name))
+            .ok_or(newioerr!(NotFound, "file name not found"))
     }
 }
 
