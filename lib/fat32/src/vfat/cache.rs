@@ -59,14 +59,15 @@ impl BlockDevicePartition {
     /// Maps a user's request for a sector `virt` to the physical sector.
     /// Returns `None` if the virtual sector number is out of range.
     fn virtual_to_physical(&self, virt: u64) -> Option<u64> {
-        println!("DBG virtual_to_physical {}", virt);
         if virt >= self.partition.num_sectors {
+            println!("DBG virtual_to_physical {} -> X", virt);
             return None;
         }
 
         let physical_offset = virt * self.factor();
         let physical_sector = self.partition.start + physical_offset;
 
+        println!("DBG virtual_to_physical {} -> {}", virt, physical_sector);
         Some(physical_sector)
     }
 }

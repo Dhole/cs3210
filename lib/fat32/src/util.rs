@@ -111,3 +111,16 @@ impl<T> SliceExt for [T] {
         from_raw_parts_mut(new_ptr, new_len)
     }
 }
+
+pub fn print_hex(buf: &[u8]) {
+    for (i, b) in buf.iter().enumerate() {
+        if i % 16 == 0 {
+            print!("{:04x}: ", i);
+        }
+        print!("{:02x} ", b);
+        if i % 16 == 15 {
+            println!();
+        }
+    }
+    println!();
+}

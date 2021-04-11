@@ -54,6 +54,7 @@ impl BiosParameterBlock {
         if ebpb.signature != 0x28 && ebpb.signature != 0x29 {
             return Err(Error::BadSignature);
         }
+        println!("DBG EBPB {:#?}", ebpb);
         Ok(ebpb)
     }
 

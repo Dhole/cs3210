@@ -48,10 +48,13 @@ fn regular_entry_name(regular_entry: &VFatRegularDirEntry) -> String {
 impl<HANDLE: VFatHandle> DirIter<HANDLE> {
     pub fn entry_name(&self, raw_entry: &VFatDirEntry, mut pos: usize) -> (String, usize) {
         let unknown_entry = unsafe { &raw_entry.unknown };
+        // println!("DBG unknown_entry {:?}", unknown_entry);
         if !unknown_entry.attributes.lfn() {
+            // println!("DBG regular {:02x}", unknown_entry.attributes.raw());
             let regular_entry = unsafe { &raw_entry.regular };
             (regular_entry_name(regular_entry), pos)
         } else {
+            // println!("DBG lfn {:02x}", unknown_entry.attributes.raw());
             let mut name = String::new();
             loop {
                 let raw_entry = &self.raw_entries[pos];
@@ -65,7 +68,11 @@ impl<HANDLE: VFatHandle> DirIter<HANDLE> {
                 raw_name[0..5].copy_from_slice(&lfn_entry.name0);
                 raw_name[5..11].copy_from_slice(&lfn_entry.name1);
                 raw_name[11..13].copy_from_slice(&lfn_entry.name2);
-                let part = String::from_utf16_lossy(&raw_name);
+                let raw_name_len = raw_name
+                    .iter()
+                    .position(|&b| b == 0x0000 || b == 0xffff)
+                    .unwrap_or(raw_name.len());
+                let part = String::from_utf16_lossy(&raw_name[..raw_name_len]);
                 name = format!("{}{}", part, name);
             }
             (name, pos)
@@ -77,6 +84,7 @@ impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
     type Item = Entry<HANDLE>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        println!("DBG DirIter.next pos: {}", self.pos);
         let mut raw_entry = &self.raw_entries[self.pos];
         loop {
             let unknown_entry = unsafe { raw_entry.unknown };
@@ -90,6 +98,7 @@ impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
             }
         }
         let (name, new_pos) = self.entry_name(&raw_entry, self.pos);
+        println!("DBG DirIter new_pos: {}, name: {}", new_pos, name);
         self.pos = new_pos;
         let mut raw_entry = &self.raw_entries[self.pos];
         let regular_entry = unsafe { raw_entry.regular };
@@ -176,12 +185,12 @@ pub struct VFatLfnDirEntry {
 const_assert_size!(VFatLfnDirEntry, 32);
 
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct VFatUnknownDirEntry {
     id: u8,
-    reserved0: [u8; 9],
+    reserved0: [u8; 10],
     attributes: Attributes,
-    reserved1: [u8; 21],
+    reserved1: [u8; 20],
 }
 
 const_assert_size!(VFatUnknownDirEntry, 32);

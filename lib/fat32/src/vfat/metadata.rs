@@ -17,7 +17,7 @@ impl Date {
         ((self.0 & 0b0000_0001__1110_0000) >> 5) as u8
     }
     pub fn year(&self) -> usize {
-        ((self.0 & 0b1111_1110__0000_0000) >> 9) as usize
+        1980 + ((self.0 & 0b1111_1110__0000_0000) >> 9) as usize
     }
 }
 
@@ -31,7 +31,7 @@ impl Time {
         Self(t)
     }
     pub fn second(&self) -> u8 {
-        ((self.0 & 0b0000_0000__0001_1111) / 2) as u8
+        ((self.0 & 0b0000_0000__0001_1111) * 2) as u8
     }
     pub fn minute(&self) -> u8 {
         ((self.0 & 0b0000_0111__1110_0000) >> 5) as u8
@@ -54,7 +54,12 @@ const ATTR_LFN: u8 = ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Attributes(u8);
 
+const ROOTDIR_ATTRIBUTES: Attributes = Attributes(ATTR_DIRECTORY);
+
 impl Attributes {
+    pub fn raw(&self) -> u8 {
+        self.0
+    }
     pub fn read_only(&self) -> bool {
         self.0 & ATTR_READ_ONLY != 0
     }
@@ -74,7 +79,7 @@ impl Attributes {
         self.0 & ATTR_ARCHIVE != 0
     }
     pub fn lfn(&self) -> bool {
-        self.0 & ATTR_LFN != 0
+        self.0 & ATTR_LFN == ATTR_LFN
     }
 }
 
@@ -85,6 +90,11 @@ pub struct Timestamp {
     pub time: Time,
 }
 
+const ROOTDIR_TIMESTAMP: Timestamp = Timestamp {
+    date: Date(0),
+    time: Time(0),
+};
+
 /// Metadata for a directory entry.
 #[derive(Default, Clone)]
 pub struct Metadata {
@@ -93,6 +103,13 @@ pub struct Metadata {
     pub modified_ts: Timestamp,
     pub accessed_ts: Timestamp,
 }
+
+pub const ROOTDIR_METADATA: Metadata = Metadata {
+    attributes: ROOTDIR_ATTRIBUTES,
+    created_ts: ROOTDIR_TIMESTAMP,
+    modified_ts: ROOTDIR_TIMESTAMP,
+    accessed_ts: ROOTDIR_TIMESTAMP,
+};
 
 impl traits::Timestamp for Timestamp {
     fn year(&self) -> usize {
