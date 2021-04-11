@@ -103,6 +103,8 @@ impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
             EntryValue::File(File {
                 vfat: self.dir.vfat.clone(),
                 first_cluster: first_cluster,
+                size: regular_entry.size,
+                pos: 0,
             })
         };
         let metadata = regular_entry.metadata();

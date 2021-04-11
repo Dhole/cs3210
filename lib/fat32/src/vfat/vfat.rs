@@ -149,6 +149,10 @@ impl<'a, HANDLE: VFatHandle> FileSystem for &'a HANDLE {
     type Entry = crate::traits::Dummy;
 
     fn open<P: AsRef<Path>>(self, path: P) -> io::Result<Self::Entry> {
-        unimplemented!("FileSystem::open()")
+        let mut entry = None;
+        let mut dir = root;
+        for name in path.as_ref().components() {
+            let entry = Some(dir.find(name)?);
+        }
     }
 }
