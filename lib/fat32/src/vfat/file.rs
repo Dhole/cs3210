@@ -61,14 +61,33 @@ impl<HANDLE: VFatHandle> io::Read for File<HANDLE> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         use traits::File;
 
+        if self.pos >= self.size as u64 {
+            return Ok(0);
+        }
         // TODO: Replace by an efficient implementation
         let mut file_buf = Vec::new();
         self.vfat.lock(|vfat| -> io::Result<()> {
             vfat.read_chain(self.first_cluster, &mut file_buf)?;
             Ok(())
         });
+        // if file_buf.len() < self.size() as usize {
+        //     panic!(
+        //         "file_buf.len(): {} < self.size(): {}",
+        //         file_buf.len(),
+        //         self.size()
+        //     );
+        // }
         let len = core::cmp::min(buf.len() as u64, self.size() - self.pos) as usize;
+        if self.pos as usize >= file_buf.len() {
+            for b in buf[..len].iter_mut() {
+                *b = 0x00;
+            }
+            self.pos += len as u64;
+            return Ok(len);
+        }
+        let len = core::cmp::min(len, file_buf.len() - self.pos as usize);
         buf[..len].copy_from_slice(&file_buf[self.pos as usize..self.pos as usize + len]);
+        self.pos += len as u64;
         Ok(len)
     }
 }

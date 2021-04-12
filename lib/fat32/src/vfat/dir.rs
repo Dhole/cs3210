@@ -45,6 +45,9 @@ fn regular_entry_name(regular_entry: &VFatRegularDirEntry) -> String {
     name.to_string()
 }
 
+const MAX_LFN_ENTRIES: usize = 0x14;
+const LFN_ENTRY_LEN: usize = 13;
+
 impl<HANDLE: VFatHandle> DirIter<HANDLE> {
     pub fn entry_name(&self, raw_entry: &VFatDirEntry, mut pos: usize) -> (String, usize) {
         let unknown_entry = unsafe { &raw_entry.unknown };
@@ -55,7 +58,7 @@ impl<HANDLE: VFatHandle> DirIter<HANDLE> {
             (regular_entry_name(regular_entry), pos)
         } else {
             // println!("DBG lfn {:02x}", unknown_entry.attributes.raw());
-            let mut name = String::new();
+            let mut name_u16 = [0xffffu16; MAX_LFN_ENTRIES * LFN_ENTRY_LEN];
             loop {
                 let raw_entry = &self.raw_entries[pos];
                 let unknown_entry = unsafe { &raw_entry.unknown };
@@ -68,13 +71,24 @@ impl<HANDLE: VFatHandle> DirIter<HANDLE> {
                 raw_name[0..5].copy_from_slice(&lfn_entry.name0);
                 raw_name[5..11].copy_from_slice(&lfn_entry.name1);
                 raw_name[11..13].copy_from_slice(&lfn_entry.name2);
-                let raw_name_len = raw_name
-                    .iter()
-                    .position(|&b| b == 0x0000 || b == 0xffff)
-                    .unwrap_or(raw_name.len());
-                let part = String::from_utf16_lossy(&raw_name[..raw_name_len]);
-                name = format!("{}{}", part, name);
+                let seq_num = ((lfn_entry.seq_num & 0x1f) - 1) as usize;
+                assert!(seq_num < MAX_LFN_ENTRIES);
+                name_u16[seq_num * LFN_ENTRY_LEN..seq_num * LFN_ENTRY_LEN + LFN_ENTRY_LEN]
+                    .copy_from_slice(&raw_name[..]);
             }
+            let name_len = name_u16
+                .iter()
+                .position(|&b| b == 0x0000 || b == 0xffff)
+                .unwrap_or(name_u16.len());
+            let name = String::from_utf16_lossy(&name_u16[..name_len]);
+            // name = format!("{}{}", part, name);
+            // println!(
+            //     "DBG lfn: ({}) {:02x} {} -> {}",
+            //     pos - 1,
+            //     lfn_entry.seq_num,
+            //     part,
+            //     name
+            // );
             (name, pos)
         }
     }
@@ -84,24 +98,26 @@ impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
     type Item = Entry<HANDLE>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        println!("DBG DirIter.next pos: {}", self.pos);
+        // println!("DBG DirIter.next pos: {}", self.pos);
         let mut raw_entry = &self.raw_entries[self.pos];
         loop {
             let unknown_entry = unsafe { raw_entry.unknown };
             match unknown_entry.id {
                 0x00 => return None,
-                0xE5 => {
-                    self.pos += 1;
-                    raw_entry = &self.raw_entries[self.pos];
+                0xE5 => {}
+                _ => {
+                    break;
                 }
-                _ => break,
             }
+            self.pos += 1;
+            raw_entry = &self.raw_entries[self.pos];
         }
         let (name, new_pos) = self.entry_name(&raw_entry, self.pos);
-        println!("DBG DirIter new_pos: {}, name: {}", new_pos, name);
+        // println!("DBG DirIter new_pos: {}, name: {}", new_pos, name);
         self.pos = new_pos;
         let mut raw_entry = &self.raw_entries[self.pos];
         let regular_entry = unsafe { raw_entry.regular };
+        // println!("DBG DirIter regular_entry: {:?}", regular_entry);
         let first_cluster = regular_entry.first_cluster();
         let value = if regular_entry.attributes.directory() {
             EntryValue::Dir(Dir {
@@ -109,6 +125,7 @@ impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
                 first_cluster: first_cluster,
             })
         } else {
+            // println!("DBG File first_cluster: {:?}", first_cluster);
             EntryValue::File(File {
                 vfat: self.dir.vfat.clone(),
                 first_cluster: first_cluster,
@@ -116,6 +133,7 @@ impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
                 pos: 0,
             })
         };
+        // println!("DBG DirIter value: {:?}", value);
         let metadata = regular_entry.metadata();
         self.pos += 1;
         Some(Entry {
@@ -127,7 +145,7 @@ impl<HANDLE: VFatHandle> Iterator for DirIter<HANDLE> {
 }
 
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct VFatRegularDirEntry {
     file_name: [u8; 8],
     file_ext: [u8; 3],
@@ -146,6 +164,10 @@ pub struct VFatRegularDirEntry {
 
 impl VFatRegularDirEntry {
     pub fn first_cluster(&self) -> Cluster {
+        // println!(
+        //     "DBG first_cluster {:04x} {:04x}",
+        //     self.first_cluster_hi, self.first_cluster_lo
+        // );
         Cluster::from(self.first_cluster_lo as u32 | (self.first_cluster_hi as u32) << 16)
     }
     pub fn metadata(&self) -> Metadata {
@@ -230,6 +252,7 @@ impl<HANDLE: VFatHandle> traits::Dir for Dir<HANDLE> {
     type Iter = DirIter<HANDLE>;
 
     fn entries(&self) -> io::Result<Self::Iter> {
+        // println!("DBG entries {:?}", self.first_cluster);
         let mut data = Vec::new();
         self.vfat.lock(|vfat| -> io::Result<()> {
             vfat.read_chain(self.first_cluster, &mut data)?;

@@ -109,7 +109,7 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
         // offset: usize,
         buf: &mut [u8],
     ) -> io::Result<usize> {
-        println!("DBG read_cluster {:?}", cluster);
+        // println!("DBG read_cluster {:?}", cluster);
         let sector = self.cluster_sector(cluster);
         read_n_sectors(
             &mut self.device,
@@ -121,13 +121,13 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
 
     // Read all of the clusters chained from a starting cluster into a vector.
     pub fn read_chain(&mut self, start: Cluster, buf: &mut Vec<u8>) -> io::Result<usize> {
-        println!("DBG read_chain {:?}", start);
+        // println!("DBG read_chain {:?}", start);
         let mut sector_data = vec![0; self.device.sector_size() as usize];
         let mut next = start;
         let mut read_bytes = 0;
         loop {
             read_bytes += self.read_cluster(next, &mut sector_data)?;
-            println!("DBG read_cluster OK");
+            // println!("DBG read_cluster OK");
             buf.extend_from_slice(&sector_data);
             match self.fat_entry(next)?.status() {
                 Status::Data(cluster) => next = cluster,
@@ -135,8 +135,8 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
                 status => return ioerr!(InvalidData, "Invalid chain fat entry"),
             }
         }
-        println!("DBG read_chain OK");
-        print_hex(&buf);
+        // println!("DBG read_chain OK");
+        // print_hex(&buf);
         Ok(read_bytes)
     }
 
@@ -148,15 +148,15 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
         let sector = self.fat_start_sector + cluster.raw() as u64 / (fat_entries_per_sector as u64);
         let offset = cluster.raw() as usize % (fat_entries_per_sector as usize);
         let offset_bytes = offset * size_of::<FatEntry>();
-        println!("DBG fat_entry sector: {}, offset: {}", sector, offset);
+        // println!("DBG fat_entry sector: {}, offset: {}", sector, offset);
         let sector_data = self.device.get(sector)?;
         let mut bytes = [0; 4];
         bytes.copy_from_slice(&sector_data[offset_bytes..offset_bytes + 4]);
-        println!(
-            "DBG fat_entry {:?} -> {:?}",
-            cluster,
-            FatEntry(u32::from_le_bytes(bytes))
-        );
+        // println!(
+        //     "DBG fat_entry {:?} -> {:?}",
+        //     cluster,
+        //     FatEntry(u32::from_le_bytes(bytes))
+        // );
         Ok(FatEntry(u32::from_le_bytes(bytes)))
     }
 }
@@ -183,7 +183,7 @@ impl<'a, HANDLE: VFatHandle> FileSystem for &'a HANDLE {
             return ioerr!(NotFound, "directory not found");
         }
         while let Some(name) = components.next() {
-            println!("DBG open name: {:?}", name.as_os_str());
+            // println!("DBG open name: {:?}", name.as_os_str());
             let entry = dir.find(name)?;
             if let None = components.peek() {
                 return Ok(entry);
