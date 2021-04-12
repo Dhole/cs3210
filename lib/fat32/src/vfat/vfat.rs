@@ -102,6 +102,10 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
         self.data_start_sector + (cluster.raw() as u64 - 2) * self.sectors_per_cluster as u64
     }
 
+    pub fn cluster_size(&self) -> u64 {
+        self.device.sector_size() * self.sectors_per_cluster as u64
+    }
+
     // Read from an offset of a cluster into a buffer.
     pub fn read_cluster(
         &mut self,
@@ -111,6 +115,7 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
     ) -> io::Result<usize> {
         // println!("DBG read_cluster {:?}", cluster);
         let sector = self.cluster_sector(cluster);
+        // println!("DBG read_cluster n_sectors: {}", self.sectors_per_cluster);
         read_n_sectors(
             &mut self.device,
             sector,
@@ -122,13 +127,15 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
     // Read all of the clusters chained from a starting cluster into a vector.
     pub fn read_chain(&mut self, start: Cluster, buf: &mut Vec<u8>) -> io::Result<usize> {
         // println!("DBG read_chain {:?}", start);
-        let mut sector_data = vec![0; self.device.sector_size() as usize];
+        let mut cluster_data = vec![0; self.cluster_size() as usize];
         let mut next = start;
         let mut read_bytes = 0;
+        // println!("DBG read_chain next: {:?}", next);
         loop {
-            read_bytes += self.read_cluster(next, &mut sector_data)?;
+            read_bytes += self.read_cluster(next, &mut cluster_data)?;
             // println!("DBG read_cluster OK");
-            buf.extend_from_slice(&sector_data);
+            buf.extend_from_slice(&cluster_data);
+            // println!("DBG read_chain next: {:?}", self.fat_entry(next)?);
             match self.fat_entry(next)?.status() {
                 Status::Data(cluster) => next = cluster,
                 Status::Eoc(_) => break,

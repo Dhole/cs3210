@@ -361,7 +361,7 @@ fn hash_files_recursive<P: AsRef<Path>>(
             use std::fmt::Write;
             let file = entry.into_file().unwrap();
             if file.size() < (1 << 20) {
-                // println!("DBG test path: {}", path.display());
+                println!("DBG test path: {}", path.display());
                 write!(hash, "{}: ", path.display())?;
                 hash_file(hash, file).expect("successful hash");
                 hash.push('\n');

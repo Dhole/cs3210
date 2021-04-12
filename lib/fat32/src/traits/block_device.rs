@@ -7,6 +7,7 @@ use shim::io;
 pub trait BlockDevice: Send + core::fmt::Debug {
     /// Sector size in bytes. Must be a multiple of 512 >= 512. Defaults to 512.
     fn sector_size(&self) -> u64 {
+        // println!("DBG BlockDevice.sector_size: {}", 512);
         512
     }
 

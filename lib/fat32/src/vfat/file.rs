@@ -4,6 +4,7 @@ use shim::io::{self, SeekFrom};
 use shim::ioerr;
 
 use crate::traits;
+use crate::util::print_hex;
 use crate::vfat::{Cluster, Metadata, VFatHandle};
 
 #[derive(Debug)]
@@ -70,6 +71,10 @@ impl<HANDLE: VFatHandle> io::Read for File<HANDLE> {
             vfat.read_chain(self.first_cluster, &mut file_buf)?;
             Ok(())
         });
+        // if self.pos == 0 {
+        //     println!("DBG size: {}", self.size());
+        //     print_hex(&file_buf[..self.size() as usize]);
+        // }
         // if file_buf.len() < self.size() as usize {
         //     panic!(
         //         "file_buf.len(): {} < self.size(): {}",
@@ -78,14 +83,15 @@ impl<HANDLE: VFatHandle> io::Read for File<HANDLE> {
         //     );
         // }
         let len = core::cmp::min(buf.len() as u64, self.size() - self.pos) as usize;
-        if self.pos as usize >= file_buf.len() {
-            for b in buf[..len].iter_mut() {
-                *b = 0x00;
-            }
-            self.pos += len as u64;
-            return Ok(len);
-        }
-        let len = core::cmp::min(len, file_buf.len() - self.pos as usize);
+        // if self.pos as usize >= file_buf.len() {
+        //     println!("DBG file read past");
+        //     for b in buf[..len].iter_mut() {
+        //         *b = 0x00;
+        //     }
+        //     self.pos += len as u64;
+        //     return Ok(len);
+        // }
+        // let len = core::cmp::min(len, file_buf.len() - self.pos as usize);
         buf[..len].copy_from_slice(&file_buf[self.pos as usize..self.pos as usize + len]);
         self.pos += len as u64;
         Ok(len)
