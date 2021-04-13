@@ -17,8 +17,6 @@ pub struct Entry<HANDLE: VFatHandle> {
     pub _name: String,
 }
 
-// TODO: Implement any useful helper methods on `Entry`.
-
 impl<HANDLE: VFatHandle> traits::Entry for Entry<HANDLE> {
     type File = File<HANDLE>;
     type Dir = Dir<HANDLE>;

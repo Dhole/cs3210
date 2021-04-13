@@ -21,18 +21,49 @@ use crate::vfat::metadata::ROOTDIR_METADATA;
 use crate::vfat::{BiosParameterBlock, BlockDeviceCached, BlockDevicePartition, Partition};
 use crate::vfat::{Cluster, Dir, Entry, Error, FatEntry, File, Status};
 
+#[derive(Debug)]
+pub struct Chain<HANDLE: VFatHandle> {
+    vfat: HANDLE,
+    next: Option<Cluster>,
+}
+
+impl<HANDLE: VFatHandle> Iterator for Chain<HANDLE> {
+    type Item = io::Result<Cluster>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = match self.next {
+            None => return None,
+            Some(next) => next,
+        };
+        self.next = match self.vfat.lock(|vfat| Ok(vfat.fat_entry(next)?.status())) {
+            Ok(status) => match status {
+                Status::Data(cluster) => Some(cluster),
+                Status::Eoc(_) => None,
+                status => return Some(ioerr!(InvalidData, "Invalid chain fat entry")),
+            },
+            Err(e) => return Some(Err(e)),
+        };
+        Some(Ok(next))
+    }
+}
+
 /// A generic trait that handles a critical section as a closure
 pub trait VFatHandle: Clone + Debug + Send + Sync {
     fn new(val: VFat<Self>) -> Self;
     fn lock<R>(&self, f: impl FnOnce(&mut VFat<Self>) -> R) -> R;
+
+    fn chain(&self, start: Cluster) -> Chain<Self> {
+        Chain {
+            vfat: self.clone(),
+            next: Some(start),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct VFat<HANDLE: VFatHandle> {
     phantom: PhantomData<HANDLE>,
-    // device: CachedPartition,
     device: BlockDeviceCached,
-    // device: Box<dyn BlockDevice>,
     bytes_per_sector: u16,
     sectors_per_cluster: u8,
     sectors_per_fat: u32,
@@ -87,7 +118,6 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
                 + ebpb.fats as u64 * ebpb.sectors_per_fat() as u64,
             rootdir_cluster: Cluster::from(ebpb.rootdir_cluster),
         };
-        println!("DBG VFAT {:#?}", vfat);
         Ok(HANDLE::new(vfat))
     }
 
@@ -95,7 +125,7 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
     where
         T: BlockDevice + 'static,
     {
-        unimplemented!();
+        VFat::from_mbr_part0(device)
     }
 
     pub fn cluster_sector(&self, cluster: Cluster) -> u64 {
@@ -107,15 +137,8 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
     }
 
     // Read from an offset of a cluster into a buffer.
-    pub fn read_cluster(
-        &mut self,
-        cluster: Cluster,
-        // offset: usize,
-        buf: &mut [u8],
-    ) -> io::Result<usize> {
-        // println!("DBG read_cluster {:?}", cluster);
+    pub fn read_cluster(&mut self, cluster: Cluster, buf: &mut [u8]) -> io::Result<usize> {
         let sector = self.cluster_sector(cluster);
-        // println!("DBG read_cluster n_sectors: {}", self.sectors_per_cluster);
         read_n_sectors(
             &mut self.device,
             sector,
@@ -126,24 +149,23 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
 
     // Read all of the clusters chained from a starting cluster into a vector.
     pub fn read_chain(&mut self, start: Cluster, buf: &mut Vec<u8>) -> io::Result<usize> {
-        // println!("DBG read_chain {:?}", start);
         let mut cluster_data = vec![0; self.cluster_size() as usize];
         let mut next = start;
         let mut read_bytes = 0;
-        // println!("DBG read_chain next: {:?}", next);
+        // for cluster in self.chain(start) {
+        //     let cluster = cluster?;
+        //     read_bytes += self.read_cluster(cluster, &mut cluster_data)?;
+        //     buf.extend_from_slice(&cluster_data);
+        // }
         loop {
             read_bytes += self.read_cluster(next, &mut cluster_data)?;
-            // println!("DBG read_cluster OK");
             buf.extend_from_slice(&cluster_data);
-            // println!("DBG read_chain next: {:?}", self.fat_entry(next)?);
             match self.fat_entry(next)?.status() {
                 Status::Data(cluster) => next = cluster,
                 Status::Eoc(_) => break,
                 status => return ioerr!(InvalidData, "Invalid chain fat entry"),
             }
         }
-        // println!("DBG read_chain OK");
-        // print_hex(&buf);
         Ok(read_bytes)
     }
 
@@ -155,15 +177,9 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
         let sector = self.fat_start_sector + cluster.raw() as u64 / (fat_entries_per_sector as u64);
         let offset = cluster.raw() as usize % (fat_entries_per_sector as usize);
         let offset_bytes = offset * size_of::<FatEntry>();
-        // println!("DBG fat_entry sector: {}, offset: {}", sector, offset);
         let sector_data = self.device.get(sector)?;
         let mut bytes = [0; 4];
         bytes.copy_from_slice(&sector_data[offset_bytes..offset_bytes + 4]);
-        // println!(
-        //     "DBG fat_entry {:?} -> {:?}",
-        //     cluster,
-        //     FatEntry(u32::from_le_bytes(bytes))
-        // );
         Ok(FatEntry(u32::from_le_bytes(bytes)))
     }
 }
@@ -190,7 +206,6 @@ impl<'a, HANDLE: VFatHandle> FileSystem for &'a HANDLE {
             return ioerr!(NotFound, "directory not found");
         }
         while let Some(name) = components.next() {
-            // println!("DBG open name: {:?}", name.as_os_str());
             let entry = dir.find(name)?;
             if let None = components.peek() {
                 return Ok(entry);

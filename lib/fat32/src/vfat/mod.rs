@@ -15,8 +15,8 @@ pub use self::entry::Entry;
 pub use self::error::Error;
 pub use self::file::File;
 pub use self::metadata::{Attributes, Date, Metadata, Time, Timestamp};
-pub use self::vfat::{VFat, VFatHandle};
+pub use self::vfat::{Chain, VFat, VFatHandle};
 
-pub(crate) use self::cache::{BlockDeviceCached, BlockDevicePartition, CachedPartition, Partition};
+pub(crate) use self::cache::{BlockDeviceCached, BlockDevicePartition, Partition};
 pub(crate) use self::cluster::Cluster;
 pub(crate) use self::fat::{FatEntry, Status};

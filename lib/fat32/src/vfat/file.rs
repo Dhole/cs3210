@@ -1,19 +1,32 @@
 use alloc::string::String;
 
 use shim::io::{self, SeekFrom};
-use shim::ioerr;
+use shim::{ioerr, newioerr};
 
 use crate::traits;
 use crate::util::print_hex;
-use crate::vfat::{Cluster, Metadata, VFatHandle};
+use crate::vfat::{Chain, Cluster, Metadata, VFatHandle};
 
 #[derive(Debug)]
 pub struct File<HANDLE: VFatHandle> {
     pub vfat: HANDLE,
     pub first_cluster: Cluster,
+    // pub chain: Chain<HANDLE>,
     pub size: u32,
     pub pos: u64,
-    // FIXME: Fill me in.
+}
+
+impl<HANDLE: VFatHandle> File<HANDLE> {
+    pub fn new(vfat: HANDLE, first_cluster: Cluster, size: u32) -> File<HANDLE> {
+        // let chain = vfat.chain(first_cluster);
+        File {
+            vfat,
+            first_cluster,
+            // chain,
+            size,
+            pos: 0,
+        }
+    }
 }
 
 // FIXME: Implement `traits::File` (and its supertraits) for `File`.
@@ -62,37 +75,41 @@ impl<HANDLE: VFatHandle> io::Read for File<HANDLE> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         use traits::File;
 
-        if self.pos >= self.size as u64 {
+        if self.pos == self.size as u64 {
             return Ok(0);
+        } else if self.pos >= self.size as u64 {
+            return Ok(0);
+            // return ioerr!(InvalidInput, "read past the end of file");
         }
-        // TODO: Replace by an efficient implementation
-        let mut file_buf = Vec::new();
+        let mut chain = self.vfat.chain(self.first_cluster);
+        let cluster_size = self.vfat.lock(|vfat| vfat.cluster_size());
+        let cluster_index = self.pos / cluster_size;
+        let cluster_offset = self.pos % cluster_size;
+        // for i in 0..cluster_index {
+        //     chain
+        //         .next()
+        //         .ok_or(newioerr!(InvalidInput, "position past the end of file"))?;
+        // }
+        // let cluster = chain.next().ok_or(newioerr!(InvalidInput, "position past the end of file"))?;
+        let cluster = chain
+            .skip(cluster_index as usize)
+            .nth(0)
+            .ok_or(newioerr!(InvalidInput, "position past the end of file"))??;
+
+        let mut cluster_data = vec![0; cluster_size as usize];
         self.vfat.lock(|vfat| -> io::Result<()> {
-            vfat.read_chain(self.first_cluster, &mut file_buf)?;
+            // vfat.read_chain(self.first_cluster, &mut file_buf)?;
+            vfat.read_cluster(cluster, &mut cluster_data)?;
             Ok(())
         });
-        // if self.pos == 0 {
-        //     println!("DBG size: {}", self.size());
-        //     print_hex(&file_buf[..self.size() as usize]);
-        // }
-        // if file_buf.len() < self.size() as usize {
-        //     panic!(
-        //         "file_buf.len(): {} < self.size(): {}",
-        //         file_buf.len(),
-        //         self.size()
-        //     );
-        // }
-        let len = core::cmp::min(buf.len() as u64, self.size() - self.pos) as usize;
-        // if self.pos as usize >= file_buf.len() {
-        //     println!("DBG file read past");
-        //     for b in buf[..len].iter_mut() {
-        //         *b = 0x00;
-        //     }
-        //     self.pos += len as u64;
-        //     return Ok(len);
-        // }
-        // let len = core::cmp::min(len, file_buf.len() - self.pos as usize);
-        buf[..len].copy_from_slice(&file_buf[self.pos as usize..self.pos as usize + len]);
+        let cluster_data_len = if cluster_index == self.size as u64 / cluster_size {
+            self.size as u64 % cluster_size
+        } else {
+            cluster_size
+        };
+        let len = core::cmp::min(buf.len() as u64, cluster_data_len - cluster_offset) as usize;
+        buf[..len]
+            .copy_from_slice(&cluster_data[cluster_offset as usize..cluster_offset as usize + len]);
         self.pos += len as u64;
         Ok(len)
     }
@@ -101,10 +118,10 @@ impl<HANDLE: VFatHandle> io::Read for File<HANDLE> {
 impl<HANDLE: VFatHandle> io::Write for File<HANDLE> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         // TODO
-        Ok(0)
+        unimplemented!()
     }
     fn flush(&mut self) -> io::Result<()> {
         // TODO
-        Ok(())
+        unimplemented!()
     }
 }

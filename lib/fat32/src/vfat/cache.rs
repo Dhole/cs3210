@@ -61,14 +61,12 @@ impl BlockDevicePartition {
     /// Returns `None` if the virtual sector number is out of range.
     fn virtual_to_physical(&self, virt: u64) -> Option<u64> {
         if virt >= self.partition.num_sectors {
-            // println!("DBG virtual_to_physical {} -> X", virt);
             return None;
         }
 
         let physical_offset = virt * self.factor();
         let physical_sector = self.partition.start + physical_offset;
 
-        // println!("DBG virtual_to_physical {} -> {}", virt, physical_sector);
         Some(physical_sector)
     }
 }
@@ -79,7 +77,6 @@ pub fn read_n_sectors(
     n: usize,
     buf: &mut [u8],
 ) -> io::Result<usize> {
-    // println!("DBG read_n_sectors {} {}", sector, n);
     let sector_size = device.sector_size() as usize;
     let buf_len = buf.len();
     let mut read_bytes = 0;
@@ -92,13 +89,7 @@ pub fn read_n_sectors(
         if n < sector_size {
             break;
         }
-        // println!("DBG Read sector {}", sector + i as u64);
     }
-    // if sector == 27668 {
-    //     println!("DBG read_n_sectors");
-    //     print_hex(buf);
-    //     println!();
-    // }
     Ok(read_bytes)
 }
 
@@ -124,35 +115,12 @@ pub fn write_n_sectors(
     Ok(write_bytes)
 }
 
-impl BlockDevicePartition {
-    pub fn foo(&mut self) {
-        println!(
-            "DBG BlockDevicePartition.foo sector_size: {}, sector_size &self: {}, &mut self: {}",
-            self.sector_size(),
-            (self as &Self).sector_size(),
-            (self as &mut Self).sector_size()
-        );
-    }
-}
-
 impl BlockDevice for BlockDevicePartition {
     fn sector_size(&self) -> u64 {
-        // println!(
-        //     "DBG BlockDevicePartition.sector_size: {}",
-        //     self.partition.sector_size
-        // );
         self.partition.sector_size
     }
 
     fn read_sector(&mut self, sector: u64, buf: &mut [u8]) -> io::Result<usize> {
-        println!(
-            "DBG BlockDevicePartition.read_sector buf_len: {}, sector_size: {}, sector_size &self: {}, &mut self: {}",
-            buf.len(),
-            self.sector_size(),
-            (self as &Self).sector_size(),
-            (self as &mut Self).sector_size()
-        );
-        // println!("DBG BlockDevicePartition read_sector {}", sector);
         let phy_sector = match self.virtual_to_physical(sector) {
             Some(s) => s,
             None => return ioerr!(InvalidInput, "virtual sector out of range"),
@@ -246,29 +214,13 @@ impl BlockDeviceCached {
 
 impl BlockDevice for BlockDeviceCached {
     fn sector_size(&self) -> u64 {
-        // println!(
-        //     "DBG BlockDeviceCached.sector_size: {}",
-        //     self.device.sector_size()
-        // );
         self.device.sector_size()
     }
 
     fn read_sector(&mut self, sector: u64, buf: &mut [u8]) -> io::Result<usize> {
-        // println!("DBG BlockDeviceCached read_sector {}", sector);
         let to_read = cmp::min(self.sector_size() as usize, buf.len());
         let sector_data = self.get(sector)?;
         buf[..to_read].copy_from_slice(&sector_data[..to_read]);
-        // if sector == 5642 {
-        println!(
-            "DBG BlockDeviceCached.read_sector buf_len: {}, sector_size: {}, sector_size &self: {}, &mut self: {}",
-            buf.len(),
-            self.sector_size(),
-            (self as &Self).sector_size(),
-            (self as &mut Self).sector_size()
-        );
-        //     print_hex(&buf[..to_read]);
-        //     println!();
-        // }
         Ok(to_read)
     }
 
@@ -280,6 +232,7 @@ impl BlockDevice for BlockDeviceCached {
     }
 }
 
+/*
 #[derive(Debug)]
 pub struct CachedPartition {
     device: Box<dyn BlockDevice>,
@@ -329,3 +282,4 @@ impl BlockDevice for CachedPartition {
         self.device.write_sector(sector, &buf)
     }
 }
+*/

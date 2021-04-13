@@ -131,7 +131,7 @@ fn test_mbr() {
     let mut data = [0u8; 512];
     mbr.read_exact(&mut data).expect("read resource data");
     let mbr = MasterBootRecord::from(Cursor::new(&mut data[..])).expect("valid MBR");
-    println!("MBR: {:#?}", mbr);
+    // println!("MBR: {:#?}", mbr);
 }
 
 #[test]
@@ -166,8 +166,8 @@ fn test_ebpb() {
 
     let ebp1 = BiosParameterBlock::from(Cursor::new(&mut data[..]), 0).expect("valid EBPB");
     let ebp2 = BiosParameterBlock::from(Cursor::new(&mut data[..]), 1).expect("valid EBPB");
-    println!("ebp1: {:#?}", ebp1);
-    println!("ebp1: {:#?}", ebp2);
+    // println!("ebp1: {:#?}", ebp1);
+    // println!("ebp1: {:#?}", ebp2);
 }
 
 #[test]
@@ -497,52 +497,6 @@ fn block_device_testdata() -> Cursor<Vec<u8>> {
         *b = 0xCC;
     }
     Cursor::new(v)
-}
-
-#[derive(Debug)]
-struct Foo;
-
-impl Foo {
-    pub fn foo(&mut self) {
-        println!(
-            "DBG Foo.foo sector_size: {}, sector_size &self: {}, &mut self: {}",
-            self.sector_size(),
-            (self as &Self).sector_size(),
-            (self as &mut Self).sector_size()
-        );
-    }
-}
-
-impl BlockDevice for Foo {
-    fn sector_size(&self) -> u64 {
-        1024
-    }
-    fn read_sector(&mut self, sector: u64, buf: &mut [u8]) -> io::Result<usize> {
-        Ok(0)
-    }
-    fn write_sector(&mut self, sector: u64, buf: &[u8]) -> io::Result<usize> {
-        Ok(0)
-    }
-}
-
-#[test]
-fn unexpected_test() {
-    // let bd = Cursor::new(vec![0; 4096]);
-    // let mut bd = BlockDevicePartition::new(
-    //     bd,
-    //     Partition {
-    //         start: 1,
-    //         num_sectors: 2,
-    //         sector_size: 1024,
-    //     },
-    // );
-    let mut bd = Foo {};
-    bd.foo();
-    // let mut sector_data = [0; 1024];
-    // assert_eq!(
-    //     1024,
-    //     bd.read_sector(0, &mut sector_data).expect("read_sector")
-    // );
 }
 
 #[test]
