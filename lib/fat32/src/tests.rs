@@ -493,7 +493,56 @@ fn block_device_testdata() -> Cursor<Vec<u8>> {
     for b in v[512..1024].iter_mut() {
         *b = 0xBB;
     }
+    for b in v[1024..1536].iter_mut() {
+        *b = 0xCC;
+    }
     Cursor::new(v)
+}
+
+#[derive(Debug)]
+struct Foo;
+
+impl Foo {
+    pub fn foo(&mut self) {
+        println!(
+            "DBG Foo.foo sector_size: {}, sector_size &self: {}, &mut self: {}",
+            self.sector_size(),
+            (self as &Self).sector_size(),
+            (self as &mut Self).sector_size()
+        );
+    }
+}
+
+impl BlockDevice for Foo {
+    fn sector_size(&self) -> u64 {
+        1024
+    }
+    fn read_sector(&mut self, sector: u64, buf: &mut [u8]) -> io::Result<usize> {
+        Ok(0)
+    }
+    fn write_sector(&mut self, sector: u64, buf: &[u8]) -> io::Result<usize> {
+        Ok(0)
+    }
+}
+
+#[test]
+fn unexpected_test() {
+    // let bd = Cursor::new(vec![0; 4096]);
+    // let mut bd = BlockDevicePartition::new(
+    //     bd,
+    //     Partition {
+    //         start: 1,
+    //         num_sectors: 2,
+    //         sector_size: 1024,
+    //     },
+    // );
+    let mut bd = Foo {};
+    bd.foo();
+    // let mut sector_data = [0; 1024];
+    // assert_eq!(
+    //     1024,
+    //     bd.read_sector(0, &mut sector_data).expect("read_sector")
+    // );
 }
 
 #[test]
@@ -533,7 +582,7 @@ fn block_device_test() {
         512,
         bd.read_sector(1, &mut sector_data).expect("read_sector")
     );
-    assert_eq!([0x00u8; 512].to_vec(), sector_data.to_vec());
+    assert_eq!([0xCCu8; 512].to_vec(), sector_data.to_vec());
     let mut sector_data = [0; 100];
     assert_eq!(
         100,
@@ -557,7 +606,7 @@ fn block_device_test() {
         bd.read_sector(0, &mut sector_data).expect("read_sector")
     );
     let mut expect = vec![0xBBu8; 512];
-    expect.extend([0x00u8; 512].iter());
+    expect.extend([0xCC; 512].iter());
     assert_eq!(expect, sector_data.to_vec());
 
     let mut sector_data = [0; 512];
@@ -568,6 +617,24 @@ fn block_device_test() {
     assert_eq!([0xBBu8; 512].to_vec(), sector_data.to_vec());
 
     // BlockDeviceCached (1)
+    let mut bd = BlockDeviceCached::new(bd);
+    let mut sector_data = [0; 1024];
+    assert_eq!(
+        1024,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    let mut expect = vec![0xBBu8; 512];
+    expect.extend([0xCC; 512].iter());
+    assert_eq!(expect, sector_data.to_vec());
+
+    let mut sector_data = [0; 512];
+    assert_eq!(
+        512,
+        bd.read_sector(0, &mut sector_data).expect("read_sector")
+    );
+    assert_eq!([0xBBu8; 512].to_vec(), sector_data.to_vec());
+
+    // BlockDeviceCached (2)
     let bd = block_device_testdata();
     let mut bd = BlockDeviceCached::new(bd);
     let mut sector_data = [0; 512];

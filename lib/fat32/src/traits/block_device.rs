@@ -60,6 +60,10 @@ pub trait BlockDevice: Send + core::fmt::Debug {
 }
 
 impl<'a, T: BlockDevice> BlockDevice for &'a mut T {
+    fn sector_size(&self) -> u64 {
+        (*self as &T).sector_size()
+    }
+
     fn read_sector(&mut self, n: u64, buf: &mut [u8]) -> io::Result<usize> {
         (*self).read_sector(n, buf)
     }

@@ -124,6 +124,17 @@ pub fn write_n_sectors(
     Ok(write_bytes)
 }
 
+impl BlockDevicePartition {
+    pub fn foo(&mut self) {
+        println!(
+            "DBG BlockDevicePartition.foo sector_size: {}, sector_size &self: {}, &mut self: {}",
+            self.sector_size(),
+            (self as &Self).sector_size(),
+            (self as &mut Self).sector_size()
+        );
+    }
+}
+
 impl BlockDevice for BlockDevicePartition {
     fn sector_size(&self) -> u64 {
         // println!(
@@ -134,6 +145,13 @@ impl BlockDevice for BlockDevicePartition {
     }
 
     fn read_sector(&mut self, sector: u64, buf: &mut [u8]) -> io::Result<usize> {
+        println!(
+            "DBG BlockDevicePartition.read_sector buf_len: {}, sector_size: {}, sector_size &self: {}, &mut self: {}",
+            buf.len(),
+            self.sector_size(),
+            (self as &Self).sector_size(),
+            (self as &mut Self).sector_size()
+        );
         // println!("DBG BlockDevicePartition read_sector {}", sector);
         let phy_sector = match self.virtual_to_physical(sector) {
             Some(s) => s,
@@ -237,16 +255,17 @@ impl BlockDevice for BlockDeviceCached {
 
     fn read_sector(&mut self, sector: u64, buf: &mut [u8]) -> io::Result<usize> {
         // println!("DBG BlockDeviceCached read_sector {}", sector);
-        let to_read = cmp::min(self.device.sector_size() as usize, buf.len());
+        let to_read = cmp::min(self.sector_size() as usize, buf.len());
         let sector_data = self.get(sector)?;
         buf[..to_read].copy_from_slice(&sector_data[..to_read]);
         // if sector == 5642 {
-        //     println!(
-        //         "DBG BlockDeviceCached.read_sector buf_len: {}, sector_size &self: {}, &mut self: {}",
-        //         buf.len(),
-        //         (self as &BlockDeviceCached).sector_size(),
-        //         (self as &mut BlockDeviceCached).sector_size()
-        //     );
+        println!(
+            "DBG BlockDeviceCached.read_sector buf_len: {}, sector_size: {}, sector_size &self: {}, &mut self: {}",
+            buf.len(),
+            self.sector_size(),
+            (self as &Self).sector_size(),
+            (self as &mut Self).sector_size()
+        );
         //     print_hex(&buf[..to_read]);
         //     println!();
         // }
@@ -254,7 +273,7 @@ impl BlockDevice for BlockDeviceCached {
     }
 
     fn write_sector(&mut self, sector: u64, buf: &[u8]) -> io::Result<usize> {
-        let to_write = cmp::min(self.device.sector_size() as usize, buf.len());
+        let to_write = cmp::min(self.sector_size() as usize, buf.len());
         let sector_data = self.get_mut(sector)?;
         sector_data[..to_write].copy_from_slice(&buf[..to_write]);
         Ok(to_write)
