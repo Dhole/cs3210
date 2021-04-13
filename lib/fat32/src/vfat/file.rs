@@ -4,7 +4,7 @@ use shim::io::{self, SeekFrom};
 use shim::{ioerr, newioerr};
 
 use crate::traits;
-use crate::util::print_hex;
+// use crate::util::print_hex;
 use crate::vfat::{Chain, Cluster, Metadata, VFatHandle};
 
 #[derive(Debug)]

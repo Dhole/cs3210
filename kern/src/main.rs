@@ -16,19 +16,20 @@ extern crate alloc;
 
 pub mod allocator;
 pub mod console;
-// pub mod fs;
+pub mod fs;
 pub mod mutex;
 pub mod shell;
 
 use allocator::memory_map;
 use allocator::Allocator;
-use console::kprintln;
+use console::{kprint, kprintln};
+use fs::sd::Sd;
+use fs::FileSystem;
 use pi::atags::Atags;
-// use fs::FileSystem;
 
 #[cfg_attr(not(test), global_allocator)]
 pub static ALLOCATOR: Allocator = Allocator::uninitialized();
-// pub static FILESYSTEM: FileSystem = FileSystem::uninitialized();
+pub static FILESYSTEM: FileSystem = FileSystem::uninitialized();
 
 // use ::shell::shell_io;
 
@@ -37,24 +38,54 @@ fn kmain() -> ! {
     // console.initialize();
     // shell_io("> ", console);
 
-    let (start, end) = memory_map().unwrap();
-    kprintln!("Memory map: 0x{:x}, 0x{:x}", start, end);
+    // let (start, end) = memory_map().unwrap();
+    // kprintln!("Memory map: 0x{:x}, 0x{:x}", start, end);
     unsafe {
         ALLOCATOR.initialize();
-        // FILESYSTEM.initialize();
+        FILESYSTEM.initialize();
     }
     kprintln!("Welcome to cs3210!");
-    kprintln!("Atags:");
-    for atag in Atags::get() {
-        kprintln!("{:#?}", atag);
-    }
+    // kprintln!("Atags:");
+    // for atag in Atags::get() {
+    //     kprintln!("{:#?}", atag);
+    // }
 
-    use alloc::vec::Vec;
-    let mut v = Vec::new();
-    for i in 0..50 {
-        v.push(i);
-        kprintln!("{:?}", v);
-    }
+    // use alloc::vec;
+    // use alloc::vec::Vec;
+    // // let mut v = Vec::<u8>::new();
+    // // for i in 0..50 {
+    // //     v.push(i);
+    // //     kprintln!("{:?}", v);
+    // // }
+    // kprintln!("Sd::new");
+    // let mut sd = unsafe { Sd::new() }.unwrap();
+    // let mut buf = vec![0u8; 512];
+    // // let mut buf = Vec::<u8>::new();
 
+    // use fat32::traits::BlockDevice;
+    // kprintln!("sd.read_sector");
+    // sd.read_sector(0, &mut buf).unwrap();
+    // for (i, b) in buf.iter().enumerate() {
+    //     if i % 16 == 0 {
+    //         kprint!("{:04x}: ", i);
+    //     }
+    //     kprint!("{:02x} ", b);
+    //     if i % 16 == 15 {
+    //         kprintln!();
+    //     }
+    // }
+    // kprintln!();
+
+    use fat32::traits::{Dir, Entry, FileSystem};
+    kprintln!("FILESYSTEM.open");
+    let entry = FILESYSTEM.open("/").unwrap();
+    kprintln!("entry.as_dir");
+    let root = entry.as_dir().unwrap();
+    kprintln!("root.entries");
+    let entries = root.entries().unwrap();
+    kprintln!("loop entries");
+    for e in entries {
+        kprintln!("{}", e.name());
+    }
     shell::shell("> ");
 }

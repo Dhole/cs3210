@@ -1,4 +1,3 @@
-/*
 pub mod sd;
 
 use alloc::rc::Rc;
@@ -58,10 +57,19 @@ impl FileSystem {
     ///
     /// Panics if the underlying disk or file sytem failed to initialize.
     pub unsafe fn initialize(&self) {
-        unimplemented!("FileSystem::initialize()")
+        let mut sd = unsafe { Sd::new() }.unwrap();
+        let handle = VFat::<PiVFatHandle>::from_mbr_part0(sd).unwrap();
+        *self.0.lock() = Some(handle);
     }
 }
 
 // FIXME: Implement `fat32::traits::FileSystem` for `&FileSystem`
-impl fat32::traits::FileSystem for &FileSystem {}
-*/
+impl fat32::traits::FileSystem for &FileSystem {
+    type File = File<PiVFatHandle>;
+    type Dir = Dir<PiVFatHandle>;
+    type Entry = Entry<PiVFatHandle>;
+
+    fn open<P: AsRef<Path>>(self, path: P) -> io::Result<Self::Entry> {
+        self.0.lock().as_ref().unwrap().open(path)
+    }
+}

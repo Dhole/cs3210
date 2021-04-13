@@ -112,6 +112,7 @@ impl<T> SliceExt for [T] {
     }
 }
 
+#[cfg(not(feature = "no_std"))]
 pub fn print_hex(buf: &[u8]) {
     for (i, b) in buf.iter().enumerate() {
         if i % 16 == 0 {

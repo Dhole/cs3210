@@ -2,6 +2,7 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 use core::mem::size_of;
 
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use shim::io;
@@ -10,7 +11,7 @@ use shim::newioerr;
 use shim::path;
 use shim::path::Path;
 
-use crate::util::print_hex;
+// use crate::util::print_hex;
 
 use crate::mbr::MasterBootRecord;
 use crate::traits::{BlockDevice, FileSystem};

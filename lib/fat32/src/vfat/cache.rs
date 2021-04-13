@@ -7,7 +7,7 @@ use shim::io;
 use shim::ioerr;
 
 use crate::traits::BlockDevice;
-use crate::util::print_hex;
+// use crate::util::print_hex;
 
 #[derive(Debug)]
 struct CacheEntry {
