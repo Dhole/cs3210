@@ -55,8 +55,7 @@ impl<HANDLE: VFatHandle> DirIter<HANDLE> {
             let regular_entry = unsafe { &raw_entry.regular };
             (regular_entry_name(regular_entry), pos)
         } else {
-            let mut name_u16 = vec![0xffffu16; MAX_LFN_ENTRIES * LFN_ENTRY_LEN];
-            let mut raw_name = vec![0u16; LFN_ENTRY_LEN];
+            let mut name_u16 = [0xffffu16; MAX_LFN_ENTRIES * LFN_ENTRY_LEN];
             loop {
                 let raw_entry = &self.raw_entries[pos];
                 let unknown_entry = unsafe { &raw_entry.unknown };
@@ -66,15 +65,15 @@ impl<HANDLE: VFatHandle> DirIter<HANDLE> {
                 pos += 1;
                 let lfn_entry = unsafe { &raw_entry.long_filename };
                 let seq_num = ((lfn_entry.seq_num & 0x1f) - 1) as usize;
+                assert!(seq_num < MAX_LFN_ENTRIES);
                 // if seq_num == 0 {
                 //     break;
                 // }
+                let raw_name =
+                    &mut name_u16[seq_num * LFN_ENTRY_LEN..seq_num * LFN_ENTRY_LEN + LFN_ENTRY_LEN];
                 raw_name[0..5].copy_from_slice(&lfn_entry.name0);
                 raw_name[5..11].copy_from_slice(&lfn_entry.name1);
                 raw_name[11..13].copy_from_slice(&lfn_entry.name2);
-                assert!(seq_num < MAX_LFN_ENTRIES);
-                name_u16[seq_num * LFN_ENTRY_LEN..seq_num * LFN_ENTRY_LEN + LFN_ENTRY_LEN]
-                    .copy_from_slice(&raw_name[..]);
             }
             let name_len = name_u16
                 .iter()

@@ -12,7 +12,7 @@ use shim::io::Write;
 use xmodem::{self, Xmodem};
 
 /// Start address of the binary to load and of the bootloader.
-const BINARY_START_ADDR: usize = 0x80000;
+const BINARY_START_ADDR: usize = 0x100000;
 const BOOTLOADER_START_ADDR: usize = 0x4000000;
 
 /// Pointer to where the loaded binary expects to be laoded.

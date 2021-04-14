@@ -81,7 +81,7 @@ impl BlockDevice for Sd {
     ///
     /// An error of kind `Other` is returned for all other errors.
     fn read_sector(&mut self, n: u64, buf: &mut [u8]) -> io::Result<usize> {
-        kprintln!("DBG Read sector {}", n);
+        // kprintln!("DBG Read sector {}", n);
         if buf.len() < 512 {
             return ioerr!(InvalidInput, "buf.len() < 512");
         }
