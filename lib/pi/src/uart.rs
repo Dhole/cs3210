@@ -67,7 +67,7 @@ impl MiniUart {
         Gpio::new(14).into_alt(Function::Alt5);
         Gpio::new(15).into_alt(Function::Alt5);
 
-        // Set baud rate to 11520
+        // Set baud rate to 115200
         let baud_rate = 115200;
         const SYS_CLK_FREQ: u32 = 250_000_000;
         let baud_reg = SYS_CLK_FREQ / (8 * baud_rate) - 1;

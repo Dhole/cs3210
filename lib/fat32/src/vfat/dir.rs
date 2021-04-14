@@ -21,7 +21,7 @@ pub struct Dir<HANDLE: VFatHandle> {
 
 pub struct DirIter<HANDLE: VFatHandle> {
     dir: Dir<HANDLE>,
-    raw_entries: Vec<VFatDirEntry>,
+    pub raw_entries: Vec<VFatDirEntry>,
     pos: usize,
 }
 
@@ -55,7 +55,8 @@ impl<HANDLE: VFatHandle> DirIter<HANDLE> {
             let regular_entry = unsafe { &raw_entry.regular };
             (regular_entry_name(regular_entry), pos)
         } else {
-            let mut name_u16 = [0xffffu16; MAX_LFN_ENTRIES * LFN_ENTRY_LEN];
+            let mut name_u16 = vec![0xffffu16; MAX_LFN_ENTRIES * LFN_ENTRY_LEN];
+            let mut raw_name = vec![0u16; LFN_ENTRY_LEN];
             loop {
                 let raw_entry = &self.raw_entries[pos];
                 let unknown_entry = unsafe { &raw_entry.unknown };
@@ -64,11 +65,13 @@ impl<HANDLE: VFatHandle> DirIter<HANDLE> {
                 }
                 pos += 1;
                 let lfn_entry = unsafe { &raw_entry.long_filename };
-                let mut raw_name = [0u16; 13];
+                let seq_num = ((lfn_entry.seq_num & 0x1f) - 1) as usize;
+                // if seq_num == 0 {
+                //     break;
+                // }
                 raw_name[0..5].copy_from_slice(&lfn_entry.name0);
                 raw_name[5..11].copy_from_slice(&lfn_entry.name1);
                 raw_name[11..13].copy_from_slice(&lfn_entry.name2);
-                let seq_num = ((lfn_entry.seq_num & 0x1f) - 1) as usize;
                 assert!(seq_num < MAX_LFN_ENTRIES);
                 name_u16[seq_num * LFN_ENTRY_LEN..seq_num * LFN_ENTRY_LEN + LFN_ENTRY_LEN]
                     .copy_from_slice(&raw_name[..]);
@@ -171,7 +174,7 @@ impl VFatRegularDirEntry {
 const_assert_size!(VFatRegularDirEntry, 32);
 
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct VFatLfnDirEntry {
     seq_num: u8,
     name0: [u16; 5],
@@ -196,10 +199,27 @@ pub struct VFatUnknownDirEntry {
 
 const_assert_size!(VFatUnknownDirEntry, 32);
 
+#[derive(Copy, Clone)]
 pub union VFatDirEntry {
     unknown: VFatUnknownDirEntry,
     regular: VFatRegularDirEntry,
     long_filename: VFatLfnDirEntry,
+}
+
+use core::fmt;
+use core::fmt::Debug;
+
+impl Debug for VFatDirEntry {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        let unknown_entry = unsafe { &self.unknown };
+        if unknown_entry.attributes.lfn() {
+            let lfn_entry = unsafe { &self.long_filename };
+            write!(f, "{:?}", lfn_entry)
+        } else {
+            let regular_entry = unsafe { &self.regular };
+            write!(f, "{:?}", regular_entry)
+        }
+    }
 }
 
 impl<HANDLE: VFatHandle> Dir<HANDLE> {
@@ -236,9 +256,17 @@ impl<HANDLE: VFatHandle> traits::Dir for Dir<HANDLE> {
             vfat.read_chain(self.first_cluster, &mut data)?;
             Ok(())
         })?;
+        // let raw_entry_len = core::mem::size_of::<VFatDirEntry>();
+        // let raw_entries_len = data.len() / raw_entry_len;
+        // let mut raw_entries: Vec<VFatDirEntry> = Vec::with_capacity(raw_entries_len);
+        // for i in 0..raw_entries_len {
+        //     raw_entries
+        //         .push(unsafe { *(data[i * raw_entry_len..].as_ptr() as *const VFatDirEntry) });
+        // }
         Ok(DirIter {
             dir: self.clone(),
             raw_entries: unsafe { data.cast() },
+            // raw_entries,
             pos: 0,
         })
     }

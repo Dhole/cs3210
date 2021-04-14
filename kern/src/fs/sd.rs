@@ -40,7 +40,7 @@ use pi::timer::spin_sleep;
 // The `wait_micros` C signature is: `void wait_micros(unsigned int);`
 #[no_mangle]
 fn wait_micros(micros: u32) {
-    spin_sleep(Duration::from_micros(micros as u64 * 100));
+    spin_sleep(Duration::from_micros(micros as u64 * 1000));
 }
 
 /// A handle to an SD card controller.
@@ -81,6 +81,7 @@ impl BlockDevice for Sd {
     ///
     /// An error of kind `Other` is returned for all other errors.
     fn read_sector(&mut self, n: u64, buf: &mut [u8]) -> io::Result<usize> {
+        kprintln!("DBG Read sector {}", n);
         if buf.len() < 512 {
             return ioerr!(InvalidInput, "buf.len() < 512");
         }

@@ -126,6 +126,7 @@ impl BlockDevice for BlockDevicePartition {
             None => return ioerr!(InvalidInput, "virtual sector out of range"),
         };
         let factor = self.factor() as usize;
+        // println!("DBG Read sector {}", phy_sector);
         read_n_sectors(self.device.as_mut(), phy_sector, factor, buf)
     }
 

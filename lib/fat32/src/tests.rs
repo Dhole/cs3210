@@ -483,6 +483,25 @@ fn shuffle_test() {
     assert_hash_eq!("mock 1 file hashes", hash, hash_for!("files-1"));
 }
 
+#[test]
+fn sd_img_test() {
+    let vfat = vfat_from_resource!("test.img");
+    println!("FILESYSTEM.open");
+    let entry = vfat.open("/").expect("open");
+    println!("entry.as_dir");
+    let root = entry.as_dir().expect("entry as dir");
+    println!("entry.as_dir");
+    let entries = root.entries().expect("root entries");
+    for i in 0..10 {
+        println!("{:?}", entries.raw_entries[i]);
+    }
+    println!("--- BEGIN ---");
+    for e in entries {
+        println!("{}", e.name());
+    }
+    println!("--- END ---");
+}
+
 use crate::vfat::cache::{BlockDeviceCached, BlockDevicePartition, Partition};
 
 fn block_device_testdata() -> Cursor<Vec<u8>> {
