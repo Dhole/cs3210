@@ -84,10 +84,28 @@ impl Attributes {
 }
 
 /// A structure containing a date and time.
-#[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Copy, Clone, PartialEq, Eq)]
 pub struct Timestamp {
     pub date: Date,
     pub time: Time,
+}
+
+use core::fmt::Debug;
+
+impl Debug for Timestamp {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        use crate::traits::Timestamp;
+        write!(
+            f,
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+            self.year(),
+            self.month(),
+            self.day(),
+            self.hour(),
+            self.minute(),
+            self.second()
+        )
+    }
 }
 
 const ROOTDIR_TIMESTAMP: Timestamp = Timestamp {

@@ -88,7 +88,7 @@ pub trait FileSystem: Sized {
     /// If there is no entry at `path`, an error kind of `NotFound` is returned.
     ///
     /// All other error values are implementation defined.
-    fn open<P: AsRef<Path>>(self, path: P) -> io::Result<Self::Entry>;
+    fn open<P: AsRef<Path>>(&self, path: P) -> io::Result<Self::Entry>;
 
     /// Opens the file at `path`. `path` must be absolute.
     ///
@@ -96,7 +96,7 @@ pub trait FileSystem: Sized {
     ///
     /// In addition to the error conditions for `open()`, this method returns an
     /// error kind of `Other` if the entry at `path` is not a regular file.
-    fn open_file<P: AsRef<Path>>(self, path: P) -> io::Result<Self::File> {
+    fn open_file<P: AsRef<Path>>(&self, path: P) -> io::Result<Self::File> {
         self.open(path)?
             .into_file()
             .ok_or(io::Error::new(io::ErrorKind::Other, "not a regular file"))
@@ -108,7 +108,7 @@ pub trait FileSystem: Sized {
     ///
     /// In addition to the error conditions for `open()`, this method returns an
     /// error kind of `Other` if the entry at `path` is not a directory.
-    fn open_dir<P: AsRef<Path>>(self, path: P) -> io::Result<Self::Dir> {
+    fn open_dir<P: AsRef<Path>>(&self, path: P) -> io::Result<Self::Dir> {
         self.open(path)?
             .into_dir()
             .ok_or(io::Error::new(io::ErrorKind::Other, "not a directory"))

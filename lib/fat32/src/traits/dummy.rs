@@ -3,7 +3,7 @@ use shim::io;
 use crate::traits::{Dir, Entry, File, Metadata, Timestamp};
 
 /// A type that implements all of the file system traits.
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Dummy;
 
 impl io::Write for Dummy {

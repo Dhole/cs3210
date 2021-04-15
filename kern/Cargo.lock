@@ -76,6 +76,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "shell"
 version = "0.1.0"
 dependencies = [
+ "fat32 0.1.0",
  "shim 0.1.0",
  "stack-vec 0.1.0",
 ]

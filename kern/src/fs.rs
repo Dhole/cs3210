@@ -69,7 +69,7 @@ impl fat32::traits::FileSystem for &FileSystem {
     type Dir = Dir<PiVFatHandle>;
     type Entry = Entry<PiVFatHandle>;
 
-    fn open<P: AsRef<Path>>(self, path: P) -> io::Result<Self::Entry> {
+    fn open<P: AsRef<Path>>(&self, path: P) -> io::Result<Self::Entry> {
         self.0.lock().as_ref().unwrap().open(path)
     }
 }

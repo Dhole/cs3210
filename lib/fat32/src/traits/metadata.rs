@@ -1,5 +1,7 @@
+use core::fmt::Debug;
+
 /// Trait for a timestamp (year, month, day, hour, minute, second).
-pub trait Timestamp: Copy + Clone + Sized {
+pub trait Timestamp: Debug + Copy + Clone + Sized {
     /// The calendar year.
     ///
     /// The year is not offset. 2009 is 2009.

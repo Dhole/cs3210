@@ -187,12 +187,12 @@ impl<HANDLE: VFatHandle> VFat<HANDLE> {
 
 const ROOTDIR_NAME: &'static str = "/";
 
-impl<'a, HANDLE: VFatHandle> FileSystem for &'a HANDLE {
+impl<HANDLE: VFatHandle> FileSystem for HANDLE {
     type File = File<HANDLE>;
     type Dir = Dir<HANDLE>;
     type Entry = Entry<HANDLE>;
 
-    fn open<P: AsRef<Path>>(self, path: P) -> io::Result<Self::Entry> {
+    fn open<P: AsRef<Path>>(&self, path: P) -> io::Result<Self::Entry> {
         use crate::traits::Entry;
         use shim::path::Component;
 
