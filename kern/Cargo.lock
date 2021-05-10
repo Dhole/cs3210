@@ -8,105 +8,98 @@ version = "0.1.0"
 name = "ahash"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8fd72866655d1904d6b0997d0b07ba561047d070fbe29de039031c641b61217"
 
 [[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
 name = "core_io"
 version = "0.1.20190701"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb3b45b225c233ea8b95309256e842264692c68eeb543e06755de9072dd1178a"
 dependencies = [
- "rustc_version",
+ "rustc_version 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "fat32"
 version = "0.1.0"
 dependencies = [
- "hashbrown",
- "shim",
+ "hashbrown 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shim 0.1.0",
 ]
 
 [[package]]
 name = "hashbrown"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e91b62f79061a0bc2e046024cb7ba44b08419ed238ecbd9adbd787434b9e8c25"
 dependencies = [
- "ahash",
- "autocfg",
+ "ahash 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "autocfg 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "kernel"
 version = "0.1.0"
 dependencies = [
- "aarch64",
- "fat32",
- "kernel_api",
- "pi",
- "shell",
- "shim",
- "stack-vec",
+ "aarch64 0.1.0",
+ "fat32 0.1.0",
+ "kernel_api 0.1.0",
+ "pi 0.1.0",
+ "shell 0.1.0",
+ "shim 0.1.0",
+ "stack-vec 0.1.0",
 ]
 
 [[package]]
 name = "kernel_api"
 version = "0.1.0"
 dependencies = [
- "shim",
+ "shim 0.1.0",
 ]
 
 [[package]]
 name = "pi"
 version = "0.1.0"
 dependencies = [
- "shim",
- "volatile",
+ "shim 0.1.0",
+ "volatile 0.1.0",
 ]
 
 [[package]]
 name = "rustc_version"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5f5376ea5e30ce23c03eb77cbe4962b988deead10910c372b226388b594c084"
 dependencies = [
- "semver",
+ "semver 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "semver"
 version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4f410fedcf71af0345d7607d246e7ad15faaadd49d240ee3b24e5dc21a820ac"
 
 [[package]]
 name = "shell"
 version = "0.1.0"
 dependencies = [
- "fat32",
- "shim",
- "stack-vec",
+ "fat32 0.1.0",
+ "shim 0.1.0",
+ "stack-vec 0.1.0",
 ]
 
 [[package]]
 name = "shim"
 version = "0.1.0"
 dependencies = [
- "cfg-if",
- "core_io",
+ "cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core_io 0.1.20190701 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -116,3 +109,12 @@ version = "0.1.0"
 [[package]]
 name = "volatile"
 version = "0.1.0"
+
+[metadata]
+"checksum ahash 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)" = "e8fd72866655d1904d6b0997d0b07ba561047d070fbe29de039031c641b61217"
+"checksum autocfg 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
+"checksum cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+"checksum core_io 0.1.20190701 (registry+https://github.com/rust-lang/crates.io-index)" = "bb3b45b225c233ea8b95309256e842264692c68eeb543e06755de9072dd1178a"
+"checksum hashbrown 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e91b62f79061a0bc2e046024cb7ba44b08419ed238ecbd9adbd787434b9e8c25"
+"checksum rustc_version 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "c5f5376ea5e30ce23c03eb77cbe4962b988deead10910c372b226388b594c084"
+"checksum semver 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "d4f410fedcf71af0345d7607d246e7ad15faaadd49d240ee3b24e5dc21a820ac"

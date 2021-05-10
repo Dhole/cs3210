@@ -25,6 +25,7 @@ pub mod shell;
 pub mod traps;
 pub mod vm;
 
+use aarch64::{brk, current_el};
 use allocator::memory_map;
 use allocator::Allocator;
 use console::{kprint, kprintln};
@@ -51,10 +52,10 @@ fn kmain() -> ! {
 
     // let (start, end) = memory_map().unwrap();
     // kprintln!("Memory map: 0x{:x}, 0x{:x}", start, end);
-    unsafe {
-        ALLOCATOR.initialize();
-        FILESYSTEM.initialize();
-    }
+    // unsafe {
+    //     ALLOCATOR.initialize();
+    //     FILESYSTEM.initialize();
+    // }
     kprintln!("Welcome to cs3210!");
     // kprintln!("Atags:");
     // for atag in Atags::get() {
@@ -89,22 +90,25 @@ fn kmain() -> ! {
     //     kprintln!();
     // }
 
-    use fat32::traits::{Dir, Entry, FileSystem};
-    kprintln!("FILESYSTEM.open");
-    let entry = (&FILESYSTEM).open("/").unwrap();
-    kprintln!("entry.as_dir");
-    let root = entry.as_dir().unwrap();
-    kprintln!("root.entries");
-    let mut entries = root.entries().unwrap();
-    // for i in 0..10 {
-    //     kprintln!("{:?}", entries.raw_entries[i]);
+    // use fat32::traits::{Dir, Entry, FileSystem};
+    // kprintln!("FILESYSTEM.open");
+    // let entry = (&FILESYSTEM).open("/").unwrap();
+    // kprintln!("entry.as_dir");
+    // let root = entry.as_dir().unwrap();
+    // kprintln!("root.entries");
+    // let mut entries = root.entries().unwrap();
+    // // for i in 0..10 {
+    // //     kprintln!("{:?}", entries.raw_entries[i]);
+    // // }
+    // kprintln!("--- BEGIN ---");
+    // for e in entries {
+    //     kprintln!("{}", e.name());
     // }
-    kprintln!("--- BEGIN ---");
-    for e in entries {
-        kprintln!("{}", e.name());
-    }
-    // let e0 = entries.next().unwrap();
-    // kprintln!("{}", e0.name());
-    kprintln!("--- END ---");
-    shell::shell("> ", &FILESYSTEM);
+    // // let e0 = entries.next().unwrap();
+    // // kprintln!("{}", e0.name());
+    // kprintln!("--- END ---");
+    // shell::shell("> ", &FILESYSTEM);
+    kprintln!("current_el: {}", unsafe { current_el() });
+    brk!(0);
+    loop {}
 }

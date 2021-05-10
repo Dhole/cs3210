@@ -1,0 +1,12 @@
+; x0: src
+; x1: dst
+; x2: len
+memcpy:
+    cbz x2, end
+loop:
+    ldr x3, [x0], #1
+    str x3, [x1], #1
+    sub x2, x2, #1
+    cbnz x2, loop
+end:
+    ret
