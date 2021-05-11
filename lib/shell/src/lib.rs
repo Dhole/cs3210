@@ -248,6 +248,7 @@ fn run<T: io::Read + io::Write, F: FileSystem>(
         "cd" => cmd_cd(&cmd.args, cwd, rw),
         "ls" => cmd_ls(&cmd.args, cwd, rw),
         "cat" => cmd_cat(&cmd.args, cwd, rw),
+        "exit" => return ioerr!(Interrupted, "exit"),
         unk => {
             writeln!(rw, "ERR: unknown command: {}", path);
             Ok(())
@@ -259,7 +260,7 @@ fn run<T: io::Read + io::Write, F: FileSystem>(
 
 /// Starts a shell using `prefix` as the prefix for each line. This function
 /// returns if the `exit` command is called.
-pub fn shell_io<T: io::Read + io::Write, F: FileSystem>(prefix: &str, mut rw: T, fs: F) -> ! {
+pub fn shell_io<T: io::Read + io::Write, F: FileSystem>(prefix: &str, mut rw: T, fs: F) {
     let mut buffer = [0u8; 512];
     let mut input = StackVec::new(&mut buffer);
     let mut cwd = Cwd::new(fs);
@@ -288,6 +289,9 @@ pub fn shell_io<T: io::Read + io::Write, F: FileSystem>(prefix: &str, mut rw: T,
                         Ok(ref cmd) => match run(cmd, &mut cwd, &mut rw) {
                             Ok(_) => {}
                             Err(e) => {
+                                if e.kind() == io::ErrorKind::Interrupted {
+                                    return;
+                                }
                                 writeln!(rw, "ERR: Command error: {:?}", e);
                             }
                         },

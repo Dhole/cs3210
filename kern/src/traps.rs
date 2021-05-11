@@ -5,6 +5,10 @@ mod syscall;
 pub mod irq;
 pub use self::frame::TrapFrame;
 
+use crate::console::{kprint, kprintln};
+use crate::shell;
+
+use fat32;
 use pi::interrupt::{Controller, Interrupt};
 
 use self::syndrome::Syndrome;
@@ -35,11 +39,22 @@ pub struct Info {
     kind: Kind,
 }
 
+#[no_mangle]
+pub extern "C" fn checkpoint() {
+    kprintln!("checkpoint");
+}
+
 /// This function is called when an exception occurs. The `info` parameter
 /// specifies the source and kind of exception that has occurred. The `esr` is
 /// the value of the exception syndrome register. Finally, `tf` is a pointer to
 /// the trap frame for the exception.
 #[no_mangle]
 pub extern "C" fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
-    unimplemented!("handle_exception");
+    kprintln!("info: {:?}, esr: {:?}", info, esr);
+    let syndrome = Syndrome::from(esr);
+    kprintln!("syndrome: {:?}", syndrome);
+    shell::shell("> ", &crate::FILESYSTEM);
+    loop {
+        aarch64::nop();
+    }
 }

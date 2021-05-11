@@ -25,7 +25,7 @@ pub mod shell;
 pub mod traps;
 pub mod vm;
 
-use aarch64::{brk, current_el};
+use aarch64::{brk, current_el, svc};
 use allocator::memory_map;
 use allocator::Allocator;
 use console::{kprint, kprintln};
@@ -52,10 +52,10 @@ fn kmain() -> ! {
 
     // let (start, end) = memory_map().unwrap();
     // kprintln!("Memory map: 0x{:x}, 0x{:x}", start, end);
-    // unsafe {
-    //     ALLOCATOR.initialize();
-    //     FILESYSTEM.initialize();
-    // }
+    unsafe {
+        ALLOCATOR.initialize();
+        FILESYSTEM.initialize();
+    }
     kprintln!("Welcome to cs3210!");
     // kprintln!("Atags:");
     // for atag in Atags::get() {
@@ -109,6 +109,8 @@ fn kmain() -> ! {
     // kprintln!("--- END ---");
     // shell::shell("> ", &FILESYSTEM);
     kprintln!("current_el: {}", unsafe { current_el() });
-    brk!(0);
+    // brk!(2);
+    svc!(721);
+    kprintln!("after brk");
     loop {}
 }

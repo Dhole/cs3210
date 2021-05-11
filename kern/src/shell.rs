@@ -86,6 +86,6 @@ use fat32::traits::FileSystem;
 
 /// Starts a shell using `prefix` as the prefix for each line. This function
 /// never returns.
-pub fn shell<F: FileSystem>(prefix: &str, fs: F) -> ! {
-    shell_io(prefix, &CONSOLE, fs);
+pub fn shell<F: FileSystem>(prefix: &str, fs: F) {
+    shell_io(prefix, &CONSOLE, fs)
 }
