@@ -56,6 +56,7 @@ pub extern "C" fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
     let syndrome = Syndrome::from(esr);
     kprintln!("syndrome: {:?}", syndrome);
     kprintln!("tf: {:#?}", tf);
+    kprintln!("exception at 0x{:06x}", tf.ELR);
     shell::shell("! ", &crate::FILESYSTEM);
 
     match syndrome {

@@ -112,5 +112,7 @@ fn kmain() -> ! {
     brk!(2);
     // svc!(721);
     kprintln!("after brk");
-    loop {}
+    loop {
+        shell::shell("> ", &FILESYSTEM);
+    }
 }

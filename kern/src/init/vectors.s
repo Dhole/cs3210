@@ -53,11 +53,11 @@ context_save:
 context_restore:
     // Restore the context from the stack.
 
-    ldp     x0,  x1, [SP], #-16
+    ldp     x0,  x1, [SP], #16
     msr ELR_EL1, x0
     msr SPSR_EL1, x1
 
-    ldp     x0,  x1, [SP], #-16
+    ldp     x0,  x1, [SP], #16
     msr SP_EL0   , x0
     msr TPIDR_EL0, x1
 
