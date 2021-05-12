@@ -50,11 +50,18 @@ pub extern "C" fn checkpoint() {
 /// the trap frame for the exception.
 #[no_mangle]
 pub extern "C" fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
+    use Syndrome::*;
+
     kprintln!("info: {:?}, esr: {:?}", info, esr);
     let syndrome = Syndrome::from(esr);
     kprintln!("syndrome: {:?}", syndrome);
-    shell::shell("> ", &crate::FILESYSTEM);
-    loop {
-        aarch64::nop();
+    kprintln!("tf: {:#?}", tf);
+    shell::shell("! ", &crate::FILESYSTEM);
+
+    match syndrome {
+        Brk(_) => {
+            tf.ELR += 4;
+        }
+        _ => {}
     }
 }

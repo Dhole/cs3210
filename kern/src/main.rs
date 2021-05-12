@@ -109,8 +109,8 @@ fn kmain() -> ! {
     // kprintln!("--- END ---");
     // shell::shell("> ", &FILESYSTEM);
     kprintln!("current_el: {}", unsafe { current_el() });
-    // brk!(2);
-    svc!(721);
+    brk!(2);
+    // svc!(721);
     kprintln!("after brk");
     loop {}
 }
