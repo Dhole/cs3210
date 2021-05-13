@@ -4,9 +4,11 @@ use core::fmt;
 
 use aarch64::*;
 
+use crate::console::{kprint, kprintln};
 use crate::mutex::Mutex;
 use crate::param::{PAGE_MASK, PAGE_SIZE, TICK, USER_IMG_BASE};
 use crate::process::{Id, Process, State};
+use crate::shell;
 use crate::traps::TrapFrame;
 use crate::VMM;
 
@@ -29,7 +31,6 @@ impl GlobalScheduler {
         let mut guard = self.0.lock();
         f(guard.as_mut().expect("scheduler uninitialized"))
     }
-
 
     /// Adds a process to the scheduler's queue and returns that process's ID.
     /// For more details, see the documentation on `Scheduler::add()`.
@@ -66,7 +67,27 @@ impl GlobalScheduler {
     /// Starts executing processes in user space using timer interrupt based
     /// preemptive scheduling. This method should not return under normal conditions.
     pub fn start(&self) -> ! {
-        unimplemented!("GlobalScheduler::start()")
+        let process = Process::new().expect("new process");
+        let mut tf = process.context;
+        tf.ELR = start_shell as *const u64 as u64;
+        tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::I | SPSR_EL1::A | SPSR_EL1::D;
+        tf.SP = process.stack.top().as_u64();
+        tf.TPIDR = 1;
+
+        // context_restore
+        unsafe {
+            asm!("mov x0, $0
+                  mov sp, x0"
+                 :: "r"(tf)
+                 :: "volatile");
+            asm!("bl context_restore" :::: "volatile");
+            asm!("adr x0, _start
+                  mov sp, x0"
+                 :::: "volatile");
+            asm!("mov x0, #0" :::: "volatile");
+        }
+        eret();
+        loop {}
     }
 
     /// Initializes the scheduler and add userspace processes to the Scheduler
@@ -145,7 +166,7 @@ impl Scheduler {
     }
 }
 
-pub extern "C" fn  test_user_process() -> ! {
+pub extern "C" fn test_user_process() -> ! {
     loop {
         let ms = 10000;
         let error: u64;
@@ -164,3 +185,20 @@ pub extern "C" fn  test_user_process() -> ! {
     }
 }
 
+pub extern "C" fn start_shell() {
+    // shell::shell("> ", &crate::FILESYSTEM);
+
+    unsafe {
+        asm!("brk 1" :::: "volatile");
+    }
+    unsafe {
+        asm!("brk 2" :::: "volatile");
+    }
+    shell::shell("user0> ", &crate::FILESYSTEM);
+    unsafe {
+        asm!("brk 3" :::: "volatile");
+    }
+    loop {
+        shell::shell("user1> ", &crate::FILESYSTEM);
+    }
+}
