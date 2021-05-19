@@ -7,6 +7,7 @@ pub use self::frame::TrapFrame;
 
 use crate::console::{kprint, kprintln};
 use crate::shell;
+use crate::IRQ;
 
 use fat32;
 use pi::interrupt::{Controller, Interrupt};
@@ -53,15 +54,29 @@ pub extern "C" fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
     use Syndrome::*;
 
     kprintln!("info: {:?}, esr: {:?}", info, esr);
-    let syndrome = Syndrome::from(esr);
-    kprintln!("syndrome: {:?}", syndrome);
-    kprintln!("tf: {:#?}", tf);
+    // kprintln!("tf: {:#?}", tf);
     kprintln!("exception at 0x{:06x}", tf.ELR);
-    shell::shell("! ", &crate::FILESYSTEM);
+    // shell::shell("! ", &crate::FILESYSTEM);
 
-    match syndrome {
-        Brk(_) => {
-            tf.ELR += 4;
+    match info.kind {
+        Kind::Synchronous => {
+            let syndrome = Syndrome::from(esr);
+            kprintln!("syndrome: {:?}", syndrome);
+            match syndrome {
+                Brk(_) => {
+                    tf.ELR += 4;
+                }
+                _ => {}
+            }
+        }
+        Kind::Irq => {
+            let mut controller = Controller::new();
+            for int in Interrupt::iter() {
+                if controller.is_pending(*int) {
+                    kprintln!("IRQ: {:?}", *int as u32);
+                    IRQ.invoke(*int, tf);
+                }
+            }
         }
         _ => {}
     }

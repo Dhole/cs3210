@@ -4,12 +4,16 @@ use core::fmt;
 
 use aarch64::*;
 
+use pi::interrupt::{Controller, Interrupt};
+use pi::timer::tick_in;
+
 use crate::console::{kprint, kprintln};
 use crate::mutex::Mutex;
 use crate::param::{PAGE_MASK, PAGE_SIZE, TICK, USER_IMG_BASE};
 use crate::process::{Id, Process, State};
 use crate::shell;
 use crate::traps::TrapFrame;
+use crate::IRQ;
 use crate::VMM;
 
 /// Process scheduler for the entire machine.
@@ -70,9 +74,21 @@ impl GlobalScheduler {
         let process = Process::new().expect("new process");
         let mut tf = process.context;
         tf.ELR = start_shell as *const u64 as u64;
-        tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::I | SPSR_EL1::A | SPSR_EL1::D;
+        tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
         tf.SP = process.stack.top().as_u64();
         tf.TPIDR = 1;
+
+        // Setup timer interrupt
+        IRQ.register(
+            Interrupt::Timer1,
+            Box::new(|tf| {
+                kprintln!("TICK");
+                tick_in(TICK);
+            }),
+        );
+        let mut controller = Controller::new();
+        controller.enable(Interrupt::Timer1);
+        tick_in(TICK);
 
         // context_restore
         unsafe {
@@ -188,16 +204,16 @@ pub extern "C" fn test_user_process() -> ! {
 pub extern "C" fn start_shell() {
     // shell::shell("> ", &crate::FILESYSTEM);
 
-    unsafe {
-        asm!("brk 1" :::: "volatile");
-    }
-    unsafe {
-        asm!("brk 2" :::: "volatile");
-    }
-    shell::shell("user0> ", &crate::FILESYSTEM);
-    unsafe {
-        asm!("brk 3" :::: "volatile");
-    }
+    // unsafe {
+    //     asm!("brk 1" :::: "volatile");
+    // }
+    // unsafe {
+    //     asm!("brk 2" :::: "volatile");
+    // }
+    // shell::shell("user0> ", &crate::FILESYSTEM);
+    // unsafe {
+    //     asm!("brk 3" :::: "volatile");
+    // }
     loop {
         shell::shell("user1> ", &crate::FILESYSTEM);
     }

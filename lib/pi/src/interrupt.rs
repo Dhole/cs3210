@@ -1,7 +1,7 @@
 use crate::common::IO_BASE;
 
 use volatile::prelude::*;
-use volatile::{Volatile, ReadVolatile};
+use volatile::{ReadVolatile, Volatile};
 
 const INT_BASE: usize = IO_BASE + 0xB000 + 0x200;
 
@@ -55,7 +55,6 @@ impl Interrupt {
     }
 }
 
-
 impl From<usize> for Interrupt {
     fn from(irq: usize) -> Interrupt {
         use Interrupt::*;
@@ -76,13 +75,22 @@ impl From<usize> for Interrupt {
 #[repr(C)]
 #[allow(non_snake_case)]
 struct Registers {
-    // FIXME: Fill me in.
+    IRQ_basic_pending: ReadVolatile<u32>,
+    IRQ_pending_1: ReadVolatile<u32>,
+    IRQ_pending_2: ReadVolatile<u32>,
+    FIQ_control: Volatile<u32>,
+    Enable_IRQs_1: Volatile<u32>,
+    Enable_IRQs_2: Volatile<u32>,
+    Enable_Basic_IRQs: Volatile<u32>,
+    Disable_IRQs_1: Volatile<u32>,
+    Disable_IRQs_2: Volatile<u32>,
+    Disable_Basic_IRQs: Volatile<u32>,
 }
 
 /// An interrupt controller. Used to enable and disable interrupts as well as to
 /// check if an interrupt is pending.
 pub struct Controller {
-    registers: &'static mut Registers
+    registers: &'static mut Registers,
 }
 
 impl Controller {
@@ -95,16 +103,31 @@ impl Controller {
 
     /// Enables the interrupt `int`.
     pub fn enable(&mut self, int: Interrupt) {
-        unimplemented!()
+        let irq = int as u32;
+        if irq < 32 {
+            self.registers.Enable_IRQs_1.write((1 << irq))
+        } else {
+            self.registers.Enable_IRQs_2.write((1 << (irq - 32)))
+        }
     }
 
     /// Disables the interrupt `int`.
     pub fn disable(&mut self, int: Interrupt) {
-        unimplemented!()
+        let irq = int as u32;
+        if irq < 32 {
+            self.registers.Disable_IRQs_1.write((1 << irq))
+        } else {
+            self.registers.Disable_IRQs_2.write((1 << (irq - 32)))
+        }
     }
 
     /// Returns `true` if `int` is pending. Otherwise, returns `false`.
     pub fn is_pending(&self, int: Interrupt) -> bool {
-        unimplemented!()
+        let irq = int as u32;
+        if irq < 32 {
+            ((1 << irq) & self.registers.IRQ_pending_1.read()) != 0
+        } else {
+            ((1 << (irq - 32)) & self.registers.IRQ_pending_2.read()) != 0
+        }
     }
 }
