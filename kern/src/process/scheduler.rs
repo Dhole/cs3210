@@ -14,6 +14,7 @@ use crate::process::{Id, Process, State};
 use crate::shell;
 use crate::traps::TrapFrame;
 use crate::IRQ;
+use crate::SCHEDULER;
 use crate::VMM;
 
 /// Process scheduler for the entire machine.
@@ -71,24 +72,21 @@ impl GlobalScheduler {
     /// Starts executing processes in user space using timer interrupt based
     /// preemptive scheduling. This method should not return under normal conditions.
     pub fn start(&self) -> ! {
-        let process = Process::new().expect("new process");
-        let mut tf = process.context;
-        tf.ELR = start_shell as *const u64 as u64;
-        tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
-        tf.SP = process.stack.top().as_u64();
-        tf.TPIDR = 1;
-
         // Setup timer interrupt
         IRQ.register(
             Interrupt::Timer1,
             Box::new(|tf| {
-                kprintln!("TICK");
+                let id = SCHEDULER.switch(State::Ready, tf);
+                kprintln!("TICK, Switch to {}", id);
                 tick_in(TICK);
             }),
         );
         let mut controller = Controller::new();
         controller.enable(Interrupt::Timer1);
         tick_in(TICK);
+
+        let mut tf = Box::new(TrapFrame::default());
+        self.critical(|scheduler| scheduler.switch_to(&mut tf));
 
         // context_restore
         unsafe {
@@ -108,7 +106,22 @@ impl GlobalScheduler {
 
     /// Initializes the scheduler and add userspace processes to the Scheduler
     pub unsafe fn initialize(&self) {
-        unimplemented!("GlobalScheduler::initialize()")
+        let mut process1 = Process::new().expect("new process");
+        let mut tf = &mut process1.context;
+        tf.ELR = start_shell1 as *const u64 as u64;
+        tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
+        tf.SP = process1.stack.top().as_u64();
+
+        let mut process2 = Process::new().expect("new process");
+        let mut tf = &mut process2.context;
+        tf.ELR = start_shell2 as *const u64 as u64;
+        tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
+        tf.SP = process2.stack.top().as_u64();
+
+        let mut scheduler = Scheduler::new();
+        scheduler.add(process1);
+        scheduler.add(process2);
+        *self.0.lock() = Some(scheduler);
     }
 
     // The following method may be useful for testing Phase 3:
@@ -138,7 +151,10 @@ pub struct Scheduler {
 impl Scheduler {
     /// Returns a new `Scheduler` with an empty queue.
     fn new() -> Scheduler {
-        unimplemented!("Scheduler::new()")
+        Self {
+            processes: VecDeque::new(),
+            last_id: None,
+        }
     }
 
     /// Adds a process to the scheduler's queue and returns that process's ID if
@@ -149,7 +165,17 @@ impl Scheduler {
     /// It is the caller's responsibility to ensure that the first time `switch`
     /// is called, that process is executing on the CPU.
     fn add(&mut self, mut process: Process) -> Option<Id> {
-        unimplemented!("Scheduler::add()")
+        let id = match self.last_id {
+            None => 0,
+            Some(core::u64::MAX) => {
+                return None;
+            }
+            Some(last_id) => last_id + 1,
+        };
+        self.last_id = Some(id);
+        process.context.TPIDR = id;
+        self.processes.push_back(process);
+        Some(id)
     }
 
     /// Finds the currently running process, sets the current process's state
@@ -160,7 +186,22 @@ impl Scheduler {
     /// If the `processes` queue is empty or there is no current process,
     /// returns `false`. Otherwise, returns `true`.
     fn schedule_out(&mut self, new_state: State, tf: &mut TrapFrame) -> bool {
-        unimplemented!("Scheduler::schedule_out()")
+        let mut process = match self.processes.pop_front() {
+            None => return false,
+            Some(process) => process,
+        };
+        match process.state {
+            State::Running => {
+                process.state = new_state;
+                process.context = Box::new(*tf);
+                self.processes.push_back(process);
+                true
+            }
+            _ => {
+                self.processes.push_front(process);
+                false
+            }
+        }
     }
 
     /// Finds the next process to switch to, brings the next process to the
@@ -171,14 +212,37 @@ impl Scheduler {
     /// If there is no process to switch to, returns `None`. Otherwise, returns
     /// `Some` of the next process`s process ID.
     fn switch_to(&mut self, tf: &mut TrapFrame) -> Option<Id> {
-        unimplemented!("Scheduler::switch_to()")
+        let mut i = 0;
+        while let Some(mut process) = self.processes.swap_remove_front(i) {
+            if process.is_ready() {
+                process.state = State::Running;
+                *tf = *process.context;
+                let id = process.context.TPIDR;
+                self.processes.push_front(process);
+                return Some(id);
+            }
+            self.processes.push_front(process);
+            i += 1;
+        }
+        if let Some(process) = self.processes.pop_front() {
+            self.processes.push_back(process);
+        }
+        return None;
     }
 
     /// Kills currently running process by scheduling out the current process
     /// as `Dead` state. Removes the dead process from the queue, drop the
     /// dead process's instance, and returns the dead process's process ID.
     fn kill(&mut self, tf: &mut TrapFrame) -> Option<Id> {
-        unimplemented!("Scheduler::kill()")
+        if let Some(mut process) = self.processes.pop_front() {
+            if let State::Running = process.state {
+                process.state = State::Dead;
+                return Some(process.context.TPIDR);
+            } else {
+                self.processes.push_front(process);
+            }
+        }
+        None
     }
 }
 
@@ -201,20 +265,14 @@ pub extern "C" fn test_user_process() -> ! {
     }
 }
 
-pub extern "C" fn start_shell() {
-    // shell::shell("> ", &crate::FILESYSTEM);
-
-    // unsafe {
-    //     asm!("brk 1" :::: "volatile");
-    // }
-    // unsafe {
-    //     asm!("brk 2" :::: "volatile");
-    // }
-    // shell::shell("user0> ", &crate::FILESYSTEM);
-    // unsafe {
-    //     asm!("brk 3" :::: "volatile");
-    // }
+pub extern "C" fn start_shell1() {
     loop {
         shell::shell("user1> ", &crate::FILESYSTEM);
+    }
+}
+
+pub extern "C" fn start_shell2() {
+    loop {
+        shell::shell("user2> ", &crate::FILESYSTEM);
     }
 }
