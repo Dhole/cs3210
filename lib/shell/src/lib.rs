@@ -2,22 +2,54 @@
 #![feature(optin_builtin_traits)]
 #![no_std]
 
+use core::str::FromStr;
 use fat32::traits::Entry;
 use fat32::traits::FileSystem;
 use fat32::vfat::Dir;
 use fat32::vfat::VFatHandle;
+use kernel_api::{syscall, OsError};
 use shim::io;
 use shim::io::{Read, Seek};
+use shim::newioerr;
 use shim::path::{Component, Path, PathBuf};
-use shim::{ioerr, newioerr};
 use stack_vec::StackVec;
+
+#[macro_export]
+macro_rules! ioerr {
+    ($kind:tt, $msg:tt) => {
+        Err(Error::Io(io::Error::new(io::ErrorKind::$kind, $msg)));
+    };
+}
 
 /// Error type for `Command` parse failures.
 #[derive(Debug)]
 enum Error {
     Empty,
     TooManyArgs,
+    Io(io::Error),
+    ParseInt(core::num::ParseIntError),
+    OsError(OsError),
 }
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
+        Error::Io(error)
+    }
+}
+
+impl From<core::num::ParseIntError> for Error {
+    fn from(error: core::num::ParseIntError) -> Self {
+        Error::ParseInt(error)
+    }
+}
+
+impl From<OsError> for Error {
+    fn from(error: OsError) -> Self {
+        Error::OsError(error)
+    }
+}
+
+type Result<T> = core::result::Result<T, Error>;
 
 /// A structure representing a single shell command.
 struct Command<'a> {
@@ -32,7 +64,7 @@ impl<'a> Command<'a> {
     ///
     /// If `s` contains no arguments, returns `Error::Empty`. If there are more
     /// arguments than `buf` can hold, returns `Error::TooManyArgs`.
-    fn parse(s: &'a str, buf: &'a mut [&'a str]) -> Result<Command<'a>, Error> {
+    fn parse(s: &'a str, buf: &'a mut [&'a str]) -> Result<Command<'a>> {
         let mut args = StackVec::new(buf);
         for arg in s.split(' ').filter(|a| !a.is_empty()) {
             args.push(arg).map_err(|_| Error::TooManyArgs)?;
@@ -65,7 +97,7 @@ fn cmd_echo<'a, T: io::Read + io::Write, F: FileSystem>(
     args: &StackVec<'a, &'a str>,
     cwd: &mut Cwd<F>,
     rw: &mut T,
-) -> io::Result<()> {
+) -> Result<()> {
     if args.len() == 1 {
         writeln!(rw);
         return Ok(());
@@ -104,7 +136,7 @@ impl<F: FileSystem> Cwd<F> {
         for component in ext_path.components() {
             match component {
                 Component::Prefix(pre) => {
-                    return ioerr!(InvalidInput, "unpexpected prefix in path")
+                    return shim::ioerr!(InvalidInput, "unpexpected prefix in path")
                 }
                 Component::RootDir => {
                     new_path = Path::new("/").to_path_buf();
@@ -136,7 +168,7 @@ fn cmd_pwd<'a, T: io::Read + io::Write, F: FileSystem>(
     args: &StackVec<'a, &'a str>,
     cwd: &mut Cwd<F>,
     rw: &mut T,
-) -> io::Result<()> {
+) -> Result<()> {
     let path = cwd
         .path
         .to_str()
@@ -149,19 +181,20 @@ fn cmd_cd<'a, T: io::Read + io::Write, F: FileSystem>(
     args: &StackVec<'a, &'a str>,
     cwd: &mut Cwd<F>,
     rw: &mut T,
-) -> io::Result<()> {
+) -> Result<()> {
     if args.len() < 2 {
         return ioerr!(InvalidInput, "no path provided");
     }
     let new_path = cwd.resolve_path(args[1])?;
-    cwd.cd(&new_path)
+    cwd.cd(&new_path)?;
+    Ok(())
 }
 
 fn cmd_cat<'a, T: io::Read + io::Write, F: FileSystem>(
     args: &StackVec<'a, &'a str>,
     cwd: &mut Cwd<F>,
     rw: &mut T,
-) -> io::Result<()> {
+) -> Result<()> {
     if args.len() < 2 {
         return ioerr!(InvalidInput, "no path provided");
     }
@@ -199,7 +232,7 @@ fn cmd_ls<'a, T: io::Read + io::Write, F: FileSystem>(
     args: &StackVec<'a, &'a str>,
     cwd: &mut Cwd<F>,
     rw: &mut T,
-) -> io::Result<()> {
+) -> Result<()> {
     use fat32::traits::Dir;
     use fat32::traits::Metadata;
 
@@ -236,11 +269,25 @@ fn cmd_ls<'a, T: io::Read + io::Write, F: FileSystem>(
     Ok(())
 }
 
+fn cmd_sleep<'a, T: io::Read + io::Write, F: FileSystem>(
+    args: &StackVec<'a, &'a str>,
+    cwd: &mut Cwd<F>,
+    rw: &mut T,
+) -> Result<()> {
+    if args.len() < 2 {
+        return ioerr!(InvalidInput, "no ms provided");
+    }
+    let ms = u32::from_str(args.as_slice()[1])?;
+    let elapsed = syscall::sleep(core::time::Duration::from_millis(ms as u64))?;
+    writeln!(rw, "Elapsed: {:?}", elapsed);
+    Ok(())
+}
+
 fn run<T: io::Read + io::Write, F: FileSystem>(
     cmd: &Command,
     cwd: &mut Cwd<F>,
     rw: &mut T,
-) -> io::Result<()> {
+) -> Result<()> {
     let path = cmd.path();
     let res = match path {
         "echo" => cmd_echo(&cmd.args, cwd, rw),
@@ -248,6 +295,7 @@ fn run<T: io::Read + io::Write, F: FileSystem>(
         "cd" => cmd_cd(&cmd.args, cwd, rw),
         "ls" => cmd_ls(&cmd.args, cwd, rw),
         "cat" => cmd_cat(&cmd.args, cwd, rw),
+        "sleep" => cmd_sleep(&cmd.args, cwd, rw),
         "exit" => return ioerr!(Interrupted, "exit"),
         unk => {
             writeln!(rw, "ERR: unknown command: {}", path);
@@ -289,9 +337,9 @@ pub fn shell_io<T: io::Read + io::Write, F: FileSystem>(prefix: &str, mut rw: T,
                         Ok(ref cmd) => match run(cmd, &mut cwd, &mut rw) {
                             Ok(_) => {}
                             Err(e) => {
-                                if e.kind() == io::ErrorKind::Interrupted {
-                                    return;
-                                }
+                                // if e.kind() == io::ErrorKind::Interrupted {
+                                //     return;
+                                // }
                                 writeln!(rw, "ERR: Command error: {:?}", e);
                             }
                         },
@@ -299,6 +347,7 @@ pub fn shell_io<T: io::Read + io::Write, F: FileSystem>(prefix: &str, mut rw: T,
                         Err(Error::TooManyArgs) => {
                             writeln!(rw, "ERR: Too many args");
                         }
+                        _ => unreachable!(),
                     }
                     continue 'prompt;
                 }

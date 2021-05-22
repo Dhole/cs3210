@@ -66,6 +66,9 @@ pub extern "C" fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
                 Brk(_) => {
                     tf.ELR += 4;
                 }
+                Svc(num) => {
+                    handle_syscall(num, tf);
+                }
                 _ => {}
             }
         }

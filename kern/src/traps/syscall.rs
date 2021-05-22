@@ -6,6 +6,7 @@ use crate::process::State;
 use crate::traps::TrapFrame;
 use crate::SCHEDULER;
 use kernel_api::*;
+use pi::timer::current_time;
 
 /// Sleep for `ms` milliseconds.
 ///
@@ -15,7 +16,21 @@ use kernel_api::*;
 /// parameter: the approximate true elapsed time from when `sleep` was called to
 /// when `sleep` returned.
 pub fn sys_sleep(ms: u32, tf: &mut TrapFrame) {
-    unimplemented!("sys_sleep()");
+    let time_sleep = current_time();
+    SCHEDULER.switch(
+        State::Waiting(Box::new(move |p| {
+            let now = current_time();
+            let elapsed = (now - time_sleep).as_millis() as u32;
+            if elapsed >= ms {
+                p.context.x[0] = elapsed as u64;
+                p.context.x[7] = 1;
+                true
+            } else {
+                false
+            }
+        })),
+        tf,
+    );
 }
 
 /// Returns current time.
@@ -58,5 +73,12 @@ pub fn sys_getpid(tf: &mut TrapFrame) {
 
 pub fn handle_syscall(num: u16, tf: &mut TrapFrame) {
     use crate::console::kprintln;
-    unimplemented!("handle_syscall()")
+    match num as usize {
+        NR_SLEEP => {
+            sys_sleep(tf.x[0] as u32, tf);
+        }
+        _ => {
+            unimplemented!("syscall {}", num);
+        }
+    }
 }

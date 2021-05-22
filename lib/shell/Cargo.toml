@@ -16,6 +16,7 @@ local = ["termios"]
 
 [dependencies]
 stack-vec = { path = "../stack-vec/" }
+kernel_api = { path = "../kernel_api/" }
 shim = { path = "../shim", features = ["alloc"] }
 fat32 = { path = "../fat32" }
 termios = { version = "0.3", optional = true }
