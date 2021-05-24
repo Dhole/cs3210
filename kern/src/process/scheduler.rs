@@ -107,11 +107,11 @@ impl GlobalScheduler {
 
     /// Initializes the scheduler and add userspace processes to the Scheduler
     pub unsafe fn initialize(&self) {
-        let mut process1 = Process::new().expect("new process");
-        let mut tf = &mut process1.context;
-        tf.ELR = start_shell1 as *const u64 as u64;
-        tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
-        tf.SP = process1.stack.top().as_u64();
+        // let mut process1 = Process::new().expect("new process");
+        // let mut tf = &mut process1.context;
+        // tf.ELR = start_shell1 as *const u64 as u64;
+        // tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
+        // tf.SP = process1.stack.top().as_u64();
 
         // let mut process2 = Process::new().expect("new process");
         // let mut tf = &mut process2.context;
@@ -119,9 +119,27 @@ impl GlobalScheduler {
         // tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
         // tf.SP = process2.stack.top().as_u64();
 
+        let mut process1 = Process::new().expect("new process");
+        let mut tf = &mut process1.context;
+        tf.ELR = USER_IMG_BASE as *const u64 as u64;
+        tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
+        tf.SP = process1.stack.top().as_u64();
+        tf.TTBR0 = crate::VMM.get_baddr().as_u64();
+        tf.TTBR1 = process1.vmap.get_baddr().as_u64();
+        self.test_phase_3(&mut process1);
+
+        let mut process2 = Process::new().expect("new process");
+        let mut tf = &mut process2.context;
+        tf.ELR = USER_IMG_BASE as *const u64 as u64;
+        tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
+        tf.SP = process2.stack.top().as_u64();
+        tf.TTBR0 = crate::VMM.get_baddr().as_u64();
+        tf.TTBR1 = process2.vmap.get_baddr().as_u64();
+        self.test_phase_3(&mut process2);
+
         let mut scheduler = Scheduler::new();
         scheduler.add(process1);
-        // scheduler.add(process2);
+        scheduler.add(process2);
         *self.0.lock() = Some(scheduler);
     }
 
@@ -129,18 +147,17 @@ impl GlobalScheduler {
     //
     // * A method to load a extern function to the user process's page table.
     //
-    // pub fn test_phase_3(&self, proc: &mut Process){
-    //     use crate::vm::{VirtualAddr, PagePerm};
-    //
-    //     let mut page = proc.vmap.alloc(
-    //         VirtualAddr::from(USER_IMG_BASE as u64), PagePerm::RWX);
-    //
-    //     let text = unsafe {
-    //         core::slice::from_raw_parts(test_user_process as *const u8, 24)
-    //     };
-    //
-    //     page[0..24].copy_from_slice(text);
-    // }
+    pub fn test_phase_3(&self, proc: &mut Process) {
+        use crate::vm::{PagePerm, VirtualAddr};
+
+        let mut page = proc
+            .vmap
+            .alloc(VirtualAddr::from(USER_IMG_BASE as u64), PagePerm::RWX);
+
+        let text = unsafe { core::slice::from_raw_parts(test_user_process as *const u8, 24) };
+
+        page[0..24].copy_from_slice(text);
+    }
 }
 
 #[derive(Debug)]

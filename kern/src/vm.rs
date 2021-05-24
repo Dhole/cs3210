@@ -26,7 +26,11 @@ impl VMManager {
     /// The caller should assure that the method is invoked only once during the kernel
     /// initialization.
     pub fn initialize(&self) {
-        unimplemented!();
+        kprintln!("0");
+        *self.0.lock() = Some(KernPageTable::new());
+        kprintln!("1");
+        self.setup();
+        kprintln!("2");
     }
 
     /// Set up the virtual memory manager.
@@ -70,20 +74,26 @@ impl VMManager {
             );
             isb();
 
+            kprintln!("00");
             TTBR0_EL1.set(baddr);
+            kprintln!("01");
             TTBR1_EL1.set(baddr);
+            kprintln!("02");
 
             asm!("dsb ish");
             isb();
+            kprintln!("03");
 
             SCTLR_EL1.set(SCTLR_EL1.get() | SCTLR_EL1::I | SCTLR_EL1::C | SCTLR_EL1::M);
+            kprintln!("04");
             asm!("dsb sy");
+            kprintln!("05");
             isb();
         }
     }
 
     /// Returns the base address of the kernel page table as `PhysicalAddr`.
     pub fn get_baddr(&self) -> PhysicalAddr {
-        unimplemented!();
+        self.0.lock().as_ref().unwrap().get_baddr()
     }
 }
