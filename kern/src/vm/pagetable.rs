@@ -328,6 +328,7 @@ impl DerefMut for UserPageTable {
 // FIXME: Implement `Drop` for `UserPageTable`.
 impl Drop for UserPageTable {
     fn drop(&mut self) {
+        kprintln!("Drop UserPageTable");
         for entry in self.0.into_iter() {
             if entry.is_valid() {
                 let addr = entry.get_page_addr().unwrap();

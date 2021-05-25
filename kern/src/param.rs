@@ -21,6 +21,7 @@ const_assert_eq!(
 pub const USER_STACK_BASE: usize = core::usize::MAX & PAGE_MASK;
 pub const USER_MAX_VM_SIZE: usize = 0x4000_0000;
 const_assert_eq!(USER_IMG_BASE.wrapping_add(USER_MAX_VM_SIZE), 0);
+pub const USER_MAX_VA: usize = 0xffff_ffff_ffff_ffff;
 // pub const KERN_STACK_BASE: usize = 0x80_000;
 pub const KERN_STACK_BASE: usize = 0x100_000;
 
