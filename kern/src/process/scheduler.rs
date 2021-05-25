@@ -121,7 +121,8 @@ impl GlobalScheduler {
 
         let mut process1 = Process::new().expect("new process");
         let mut tf = &mut process1.context;
-        tf.ELR = USER_IMG_BASE as *const u64 as u64;
+        // tf.ELR = USER_IMG_BASE as *const u64 as u64;
+        tf.ELR = 0xffff_ffff_c000_0000 as *const u64 as u64;
         tf.SPSR = (SPSR_EL1::M & 0b0000) | SPSR_EL1::F | SPSR_EL1::A | SPSR_EL1::D;
         tf.SP = process1.stack.top().as_u64();
         tf.TTBR0 = crate::VMM.get_baddr().as_u64();
@@ -156,6 +157,7 @@ impl GlobalScheduler {
 
         let text = unsafe { core::slice::from_raw_parts(test_user_process as *const u8, 24) };
 
+        kprintln!("copying at 0x{:x}", page.as_ptr() as u64);
         page[0..24].copy_from_slice(text);
     }
 }

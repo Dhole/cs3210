@@ -69,7 +69,9 @@ pub extern "C" fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
                 Svc(num) => {
                     handle_syscall(num, tf);
                 }
-                _ => {}
+                _ => {
+                    panic!("Unexpected syndrome {:?}", syndrome);
+                }
             }
         }
         Kind::Irq => {
