@@ -53,15 +53,15 @@ pub extern "C" fn checkpoint() {
 pub extern "C" fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
     use Syndrome::*;
 
-    kprintln!("info: {:?}, esr: {:?}", info, esr);
+    // kprintln!("info: {:?}, esr: {:?}", info, esr);
     // kprintln!("tf: {:#?}", tf);
-    kprintln!("exception at 0x{:06x}", tf.ELR);
+    // kprintln!("exception at 0x{:06x}", tf.ELR);
     // shell::shell("! ", &crate::FILESYSTEM);
 
     match info.kind {
         Kind::Synchronous => {
             let syndrome = Syndrome::from(esr);
-            kprintln!("syndrome: {:?}", syndrome);
+            // kprintln!("syndrome: {:?}", syndrome);
             match syndrome {
                 Brk(_) => {
                     tf.ELR += 4;
@@ -78,7 +78,7 @@ pub extern "C" fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
             let mut controller = Controller::new();
             for int in Interrupt::iter() {
                 if controller.is_pending(*int) {
-                    kprintln!("IRQ: {:?}", *int as u32);
+                    // kprintln!("IRQ: {:?}", *int as u32);
                     IRQ.invoke(*int, tf);
                 }
             }

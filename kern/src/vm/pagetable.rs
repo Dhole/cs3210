@@ -115,7 +115,7 @@ impl PageTable {
         });
         for i in 0..2 {
             let addr = pt.l3[i].as_ptr();
-            kprintln!("l3[{}] addr = 0x{:x}", i, addr.as_u64());
+            // kprintln!("l3[{}] addr = 0x{:x}", i, addr.as_u64());
             let mut entry = &mut pt.l2.entries[i];
             entry.set_masked(addr.as_u64(), RawL2Entry::ADDR);
             entry.set_bit(RawL2Entry::AF);
@@ -230,13 +230,13 @@ impl KernPageTable {
             entry.set_bit(RawL3Entry::VALID);
             pt.set_entry(va, entry);
         }
-        kprintln!("l2.entries[..2]");
-        kprintln!("  {:?}", pt.l2.entries[0]);
-        kprintln!("  {:?}", pt.l2.entries[1]);
-        kprintln!("l3[0].entries[..10]");
-        for entry in &pt.l3[0].entries[..10] {
-            kprintln!("  {:?}", entry.0);
-        }
+        // kprintln!("l2.entries[..2]");
+        // kprintln!("  {:?}", pt.l2.entries[0]);
+        // kprintln!("  {:?}", pt.l2.entries[1]);
+        // kprintln!("l3[0].entries[..10]");
+        // for entry in &pt.l3[0].entries[..10] {
+        //     kprintln!("  {:?}", entry.0);
+        // }
         Self(pt)
     }
 }
@@ -275,7 +275,7 @@ impl UserPageTable {
             panic!("va already allocated: 0x{:x}", va.as_u64());
         }
         let addr = unsafe { ALLOCATOR.alloc(Page::layout()) as u64 };
-        kprintln!("allocated at 0x{:x}", addr);
+        // kprintln!("allocated at 0x{:x}", addr);
         if addr == 0 {
             panic!("allocation failed");
         }
@@ -288,11 +288,11 @@ impl UserPageTable {
         entry.set_value(EntryType::Table, RawL3Entry::TYPE);
         entry.set_bit(RawL3Entry::VALID);
         self.0.set_entry(va_offset, entry);
-        kprintln!(
-            "UserPageTable.alloc at 0x{:x} {:?}",
-            va_offset.as_u64(),
-            entry
-        );
+        // kprintln!(
+        //     "UserPageTable.alloc at 0x{:x} {:?}",
+        //     va_offset.as_u64(),
+        //     entry
+        // );
         unsafe { core::slice::from_raw_parts_mut(addr as *mut u8, PAGE_SIZE) }
     }
 }
@@ -328,7 +328,7 @@ impl DerefMut for UserPageTable {
 // FIXME: Implement `Drop` for `UserPageTable`.
 impl Drop for UserPageTable {
     fn drop(&mut self) {
-        kprintln!("Drop UserPageTable");
+        // kprintln!("Drop UserPageTable");
         for entry in self.0.into_iter() {
             if entry.is_valid() {
                 let addr = entry.get_page_addr().unwrap();

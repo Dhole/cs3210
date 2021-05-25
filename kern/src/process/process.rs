@@ -96,15 +96,15 @@ impl Process {
         let mut file = entry.into_file().ok_or(OsError::NoEntry)?;
         let mut image_addr = Self::get_image_base();
         let file_size = file.size() as usize;
-        kprintln!("file size: {}", file_size);
+        // kprintln!("file size: {}", file_size);
         for i in 0..file_size / PAGE_SIZE {
-            kprintln!("loading page {}", i);
+            // kprintln!("loading page {}", i);
             let mut page = vmap.alloc(image_addr, PagePerm::RWX);
             file.read_exact(&mut page)?;
             image_addr += VirtualAddr::from(PAGE_SIZE);
         }
         if file_size % PAGE_SIZE != 0 {
-            kprintln!("loading last page");
+            // kprintln!("loading last page");
             let mut page = vmap.alloc(image_addr, PagePerm::RWX);
             file.read_exact(&mut page[..file_size % PAGE_SIZE])?;
         }

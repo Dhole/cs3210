@@ -26,11 +26,11 @@ impl VMManager {
     /// The caller should assure that the method is invoked only once during the kernel
     /// initialization.
     pub fn initialize(&self) {
-        kprintln!("0");
+        // kprintln!("0");
         *self.0.lock() = Some(KernPageTable::new());
-        kprintln!("1");
+        // kprintln!("1");
         self.setup();
-        kprintln!("2");
+        // kprintln!("2");
     }
 
     /// Set up the virtual memory manager.
@@ -74,20 +74,20 @@ impl VMManager {
             );
             isb();
 
-            kprintln!("00");
+            // kprintln!("00");
             TTBR0_EL1.set(baddr);
-            kprintln!("01");
+            // kprintln!("01");
             TTBR1_EL1.set(baddr);
-            kprintln!("02");
+            // kprintln!("02");
 
             asm!("dsb ish");
             isb();
-            kprintln!("03");
+            // kprintln!("03");
 
             SCTLR_EL1.set(SCTLR_EL1.get() | SCTLR_EL1::I | SCTLR_EL1::C | SCTLR_EL1::M);
-            kprintln!("04");
+            // kprintln!("04");
             asm!("dsb sy");
-            kprintln!("05");
+            // kprintln!("05");
             isb();
         }
     }

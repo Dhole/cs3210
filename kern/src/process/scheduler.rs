@@ -78,7 +78,7 @@ impl GlobalScheduler {
             Interrupt::Timer1,
             Box::new(|tf| {
                 let id = SCHEDULER.switch(State::Ready, tf);
-                kprintln!("TICK, Switch to {}", id);
+                // kprintln!("TICK, Switch to {}", id);
                 tick_in(TICK);
             }),
         );
@@ -139,10 +139,12 @@ impl GlobalScheduler {
         // self.test_phase_3(&mut process2);
 
         let mut scheduler = Scheduler::new();
-        for _ in 0..4 {
-            let p = Process::load("/sleep.bin").expect("load /sleep.bin");
-            scheduler.add(p);
-        }
+        // for _ in 0..4 {
+        //     let p = Process::load("/sleep.bin").expect("load /sleep.bin");
+        //     scheduler.add(p);
+        // }
+        let p = Process::load("/fib.bin").expect("load /sleep.bin");
+        scheduler.add(p);
         *self.0.lock() = Some(scheduler);
     }
 
@@ -159,7 +161,7 @@ impl GlobalScheduler {
 
         let text = unsafe { core::slice::from_raw_parts(test_user_process as *const u8, 24) };
 
-        kprintln!("copying at 0x{:x}", page.as_ptr() as u64);
+        // kprintln!("copying at 0x{:x}", page.as_ptr() as u64);
         page[0..24].copy_from_slice(text);
     }
 }

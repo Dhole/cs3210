@@ -39,21 +39,77 @@ pub fn sleep(span: Duration) -> OsResult<Duration> {
 }
 
 pub fn time() -> Duration {
-    unimplemented!("time()");
+    let mut ecode: u64;
+    let mut time_secs: u64;
+    let mut time_ns: u64;
+
+    unsafe {
+        asm!("svc $3
+              mov $0, x0
+              mov $1, x1
+              mov $2, x7"
+             : "=r"(time_secs), "=r"(time_ns), "=r"(ecode)
+             : "i"(NR_TIME)
+             : "x0", "x7"
+             : "volatile");
+    }
+    match OsError::from(ecode) {
+        OsError::Ok => {}
+        e => panic!("time syscall error: {:?}", e),
+    }
+
+    Duration::new(time_secs, time_ns as u32)
 }
 
 pub fn exit() -> ! {
-    unimplemented!("exit()");
+    unsafe {
+        asm!("svc $0"
+             :
+             : "i"(NR_EXIT)
+             :
+             : "volatile");
+    }
+    loop {}
 }
 
 pub fn write(b: u8) {
-    unimplemented!("write()");
+    let mut ecode: u64;
+
+    unsafe {
+        asm!("mov x0, $1
+              svc $2
+              mov $1, x7"
+             : "=r"(ecode)
+             : "r"(b), "i"(NR_WRITE)
+             : "x0", "x7"
+             : "volatile");
+    }
+    match OsError::from(ecode) {
+        OsError::Ok => {}
+        e => panic!("time syscall error: {:?}", e),
+    }
 }
 
 pub fn getpid() -> u64 {
-    unimplemented!("getpid()");
-}
+    let mut ecode: u64;
+    let mut pid: u64;
 
+    unsafe {
+        asm!("svc $2
+              mov $0, x0
+              mov $1, x7"
+             : "=r"(pid), "=r"(ecode)
+             : "i"(NR_GETPID)
+             : "x0", "x7"
+             : "volatile");
+    }
+    match OsError::from(ecode) {
+        OsError::Ok => {}
+        e => panic!("time syscall error: {:?}", e),
+    }
+
+    pid
+}
 
 struct Console;
 

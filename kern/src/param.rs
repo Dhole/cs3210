@@ -27,4 +27,5 @@ pub const KERN_STACK_BASE: usize = 0x100_000;
 
 /// The `tick` time.
 // FIXME: When you're ready, change this to something more reasonable.
-pub const TICK: Duration = Duration::from_secs(2);
+// pub const TICK: Duration = Duration::from_secs(2);
+pub const TICK: Duration = Duration::from_millis(10);
